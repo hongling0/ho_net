@@ -5,12 +5,15 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include <Windows.h>
+#include <winsock2.h>
+#include <WS2tcpip.h>
+#include <MSWSock.h>
 #include <winsock.h>
-#include <WinSock2.h>
+#pragma comment(lib,"ws2_32.lib")
+#pragma comment(lib,"mswsock.lib")
 
-typedef volatile long atomic_type;
+#include "atomic.h"
+
 typedef HANDLE handle_type;
 typedef SOCKET socket_type;
 typedef unsigned long errno_type;
-typedef WSABUF buf_type;

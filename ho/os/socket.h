@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Windows.h>
-#include <winsock.h>
+//#include <Windows.h>
+//#include <winsock.h>
 
-#include "../typedef.h"
+#include "typedef.h"
 
 
 
@@ -14,7 +14,7 @@ namespace net
 		struct write_buffer * next;
 		char *ptr;
 		int sz;
-		void *buffer;
+		char *buffer;
 	};
 
 	struct wb_list {
@@ -39,12 +39,13 @@ namespace net
 	{
 		ioevent_read,
 		ioevent_write,
+		ioevent_max,
 	};
 
 	class iocp;
 	class socket;
 	struct io_event;
-	typedef void(*ioevent_call)(iocp*, io_event*,socket*, errno_t, size_t);
+	typedef void(*ioevent_call)(iocp*, io_event*,socket*, errno_type, size_t);
 	struct io_event 
 	{
 		OVERLAPPED op;
@@ -52,6 +53,7 @@ namespace net
 		void * u;
 		WSABUF wsa;
 		char* buf;
+		atomic_type ready;
 	};
 
 	class socket
@@ -63,11 +65,20 @@ namespace net
 			type = SOCKET_TYPE_INVALID;
 			fd = INVALID_SOCKET;
 		}
+		void reset()
+		{
+			if (fd != INVALID_SOCKET)
+				closesocket(fd);
+			memset(this, 0, sizeof(*this));
+			type = SOCKET_TYPE_INVALID;
+			fd = INVALID_SOCKET;
+		}
 		int id;
 		SOCKET fd;
 		atomic_type type;
 		uint64_t wb_size;
-		io_event op[3];
+		io_event op[ioevent_max];
+		atomic_type pending;
 		struct wb_list wb;
 	};
 
