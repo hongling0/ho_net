@@ -27,4 +27,6 @@
 *.i*86
 *.x86_64
 *.hex
-ho/ho.vcxproj.filters
+*.filters
+*.sdf
+ho/Debug/
