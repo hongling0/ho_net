@@ -66,6 +66,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="atomic.h" />
+    <ClInclude Include="os\buffer.h" />
     <ClInclude Include="os\iocp.h" />
     <ClInclude Include="os\socket.h" />
     <ClInclude Include="typedef.h" />

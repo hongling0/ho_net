@@ -27,25 +27,6 @@
 #define SOCKET_TYPE_PACCEPT 7
 #define SOCKET_TYPE_BIND 8
 
-struct write_buffer {
-	struct write_buffer * next;
-	char *ptr;
-	int sz;
-	void *buffer;
-};
-
-struct wb_list {
-	struct write_buffer * head;
-	struct write_buffer * tail;
-};
-
-static inline void
-clear_wb_list(struct wb_list *list) {
-	list->head = NULL;
-	list->tail = NULL;
-}
-
-
 
 namespace net
 {
@@ -100,7 +81,7 @@ namespace net
 		return -1;
 	}
 
-	socket * iocp::new_fd(int id, int fd, bool add)
+	socket * iocp::new_fd(int id, socket_type fd, bool add)
 	{
 		socket * s = &slot[HASH_ID(id)];
 		assert(s->type == SOCKET_TYPE_RESERVE);
@@ -115,7 +96,6 @@ namespace net
 
 		s->id = id;
 		s->fd = fd;
-		s->wb_size = 0;
 		return s;
 	}
 
@@ -365,12 +345,14 @@ namespace net
 
 	static void event_send(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
+		s->wb.read_ok(sz);
 		poller->on_send(s->id,sz);
-		errno_type dummy;
+/*		errno_type dummy;
 		if (ev->wsa.len>sz)
 			poller->resend(s, ev, dummy);
 		else
-			poller->post_send(s);
+*/			
+		poller->post_send(s);
 	}
 
 	bool  iocp::resend(socket* s, io_event* ev, errno_type& err)
@@ -391,22 +373,23 @@ namespace net
 
 	int iocp::post_send(socket* s)
 	{
-		write_buffer * buf = s->wb.head;
-		if (!buf) return 0;
-		s->wb.head = s->wb.head->next;
-
 		io_event * ev = &s->op[ioevent_write];
 		ev->call = event_send;
-		ev->wsa.len = buf->sz - (buf->ptr - buf->buffer);
-		ev->wsa.buf = buf->ptr;
-		errno_type dummy;
-		resend(s, ev, dummy);
+		char* ptr;
+		size_t sz;
+		if (s->wb.readbuffer(&ptr, &sz))
+		{
+			ev->wsa.len = sz;
+			ev->wsa.buf = ptr;
+			errno_type dummy;
+			resend(s, ev, dummy);
+		}
 		return 0;
 	}
 
-	static void event_read(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
+	static void event_recv(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
-		s->type = SOCKET_TYPE_CONNECTED;
+		s->rb.write_ok(sz);
 		poller->on_recv(s->id, sz);
 		
 		errno_type dummy;
@@ -416,9 +399,15 @@ namespace net
 	bool iocp::post_recv(socket* s,errno_type& err)
 	{
 		io_event * ev = &s->op[ioevent_read];
-		ev->call = event_read;
-		ev->wsa.len = 0;// todo
-		ev->wsa.buf = ev->buf;
+		ev->call = event_recv;
+		char* ptr;
+		size_t sz;
+		if (!s->rb.writebuffer(&ptr, &sz))
+			return false;
+
+		ev->wsa.len = sz;
+		ev->wsa.buf = ptr;
+
 		DWORD bytes_transferred = 0;
 		DWORD read_flags = 0;// flags;
 		SetLastError(0);
@@ -435,13 +424,10 @@ namespace net
 		return true;
 	}
 
-	int iocp::start_send(int id, void* data, size_t sz)
+	int iocp::send(int id, char* data, size_t sz)
 	{
-		write_buffer * buf = (write_buffer * )malloc(sizeof(write_buffer) + sz);
-		memcpy(buf + 1, data, sz);
 		socket * s = getsocket(id);
-		s->wb.tail->next = buf;
-		s->wb.tail = buf;
+		s->wb.write(data, sz);
 		post_send(s);
 		return 1;
 	}

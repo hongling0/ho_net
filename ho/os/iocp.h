@@ -21,7 +21,7 @@ namespace net
 
 		int start_listen(const char * addr, int port, int backlog, errno_type& e);
 		int start_connet(const char * addr, int port, errno_type& e);
-		int start_send(int id, void* data, size_t sz);
+		int send(int id, char* data, size_t sz);
 //		int async_send(int id,const buf_t* bufs, size_t count, errno_type& e);
 		bool post_recv(socket* s, errno_type& err);
 		int post_send(socket*);
@@ -37,7 +37,7 @@ namespace net
 
 		int reserve_id();
 		void force_close(socket* s);
-		socket * new_fd(int id, int fd, bool add);
+		socket * new_fd(int id, socket_type fd, bool add);
 	private:
 		atomic_type alloc_id;
 		int event_n;

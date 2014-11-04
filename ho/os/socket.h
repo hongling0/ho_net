@@ -4,25 +4,14 @@
 //#include <winsock.h>
 
 #include "typedef.h"
-
+#include "buffer.h"
 
 
 
 namespace net
 {
-	struct write_buffer {
-		struct write_buffer * next;
-		char *ptr;
-		int sz;
-		char *buffer;
-	};
 
-	struct wb_list {
-		struct write_buffer * head;
-		struct write_buffer * tail;
-	};
-
-	enum socket_type
+	enum socket_type_enum
 	{
 		SOCKET_TYPE_INVALID = 0,
 		SOCKET_TYPE_RESERVE,
@@ -76,10 +65,10 @@ namespace net
 		int id;
 		SOCKET fd;
 		atomic_type type;
-		uint64_t wb_size;
 		io_event op[ioevent_max];
 		atomic_type pending;
-		struct wb_list wb;
+		ring_buffer wb;
+		ring_buffer rb;
 	};
 
 }
