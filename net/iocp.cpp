@@ -195,10 +195,20 @@ namespace net
 		return true;
 	}
 
-	static DWORD THREAD_START_ROUTINE(LPVOID part)
+	static DWORD WINAPI THREAD_START_ROUTINE(LPVOID part)
 	{
 		iocp * e = (iocp *)part;
 		e->poll();
+		return 0;
+	}
+
+	bool iocp::start_run(size_t t)
+	{
+		for (size_t i = 0; i < t; i++)
+		{
+			CreateThread(NULL, 0, &THREAD_START_ROUTINE, this, 0, NULL);
+		}
+		return true;
 	}
 
 	void iocp::poll()

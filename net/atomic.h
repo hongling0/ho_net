@@ -15,6 +15,7 @@ typedef volatile long atomic_type;
 #define atomic_cmp_set(lock, old, set)	((uint32_t) InterlockedCompareExchange((long *) lock, set, old) == old)
 #define atomic_fetch_add(value, add) InterlockedExchangeAdd((long *)value, add)
 #define atomic_add_fetch(value, add) InterlockedAdd(value, add)
+#define atomic_dec_fetch(value, add) InterlockedAdd(value, 0-add)
 #define memory_barrier()
 
 #else

@@ -12,12 +12,15 @@ namespace net
 		iocp();
 		~iocp();
 		void poll();
+
+
+		bool start_run(size_t t);
 		
-		void on_accept(int listenid, int newid);
-		void on_connect(int connectid);
-		void on_send(int s, size_t sz);
-		void on_recv(int s, size_t sz);
-		void on_close(int s);
+		void on_accept(int listenid, int newid){}
+		void on_connect(int connectid){}
+		void on_send(int s, size_t sz){}
+		void on_recv(int s, size_t sz){}
+		void on_close(int s){}
 
 		int start_listen(const char * addr, int port, int backlog, errno_type& e);
 		int start_connet(const char * addr, int port, errno_type& e);
@@ -43,6 +46,6 @@ namespace net
 		int event_n;
 		int event_index;
 		socket* slot;
-		handle_t event_fd;
+		handle_type event_fd;
 	};
 }
