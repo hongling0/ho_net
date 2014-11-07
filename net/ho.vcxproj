@@ -13,12 +13,12 @@
   <ItemGroup>
     <ClInclude Include="atomic.h" />
     <ClInclude Include="buffer.h" />
-    <ClInclude Include="errnomsg.cpp" />
     <ClInclude Include="iocp.h" />
     <ClInclude Include="socket.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="errmsg.cpp" />
     <ClCompile Include="iocp.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -55,7 +55,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>EnableAllWarnings</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
       <AdditionalIncludeDirectories>.</AdditionalIncludeDirectories>

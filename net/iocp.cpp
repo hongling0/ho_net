@@ -31,6 +31,21 @@
 namespace net
 {
 
+	struct startnetwork
+	{
+		startnetwork()
+		{
+			WSADATA data;
+			WSAStartup(MAKELONG(1, 2), &data);
+		}
+		~startnetwork()
+		{
+			WSACleanup();
+		}
+	};
+
+	startnetwork autoswitch;
+
 	iocp::iocp()
 	{
 		SetLastError(0);
@@ -81,14 +96,14 @@ namespace net
 		return -1;
 	}
 
-	socket * iocp::new_fd(int id, socket_type fd, bool add)
+	socket * iocp::new_fd(int id, socket_type fd, const socket_opt& opt, bool add)
 	{
 		socket * s = &slot[HASH_ID(id)];
 		assert(s->type == SOCKET_TYPE_RESERVE);
 
 		if (add) {
 			SetLastError(0);
-			if (!CreateIoCompletionPort((HANDLE)s->fd, event_fd, NULL, 0)) {
+			if (!CreateIoCompletionPort((HANDLE)fd, event_fd, (ULONG_PTR)s, 0)) {
 				s->type = SOCKET_TYPE_INVALID;
 				return NULL;
 			}
@@ -96,6 +111,7 @@ namespace net
 
 		s->id = id;
 		s->fd = fd;
+		s->opt = opt;
 		return s;
 	}
 
@@ -136,16 +152,28 @@ namespace net
 
 	static void event_accept(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
-		//if (err == WSAECONNABORTED);
+		LPFN_GETACCEPTEXSOCKADDRS GetAcceptExSockAddrs;
+		GUID guid = WSAID_GETACCEPTEXSOCKADDRS;
+		DWORD bytes = 0;
+		SOCKADDR_IN* sockaddrLocal;
+		SOCKADDR_IN* sockaddrRemote;
+		int nLocalLen = sizeof(SOCKADDR_IN);
+		int nRemoteLen = sizeof(SOCKADDR_IN);
+		WSAIoctl(s->fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid),&GetAcceptExSockAddrs, sizeof(GetAcceptExSockAddrs), &bytes, NULL, NULL);
+
+		GetAcceptExSockAddrs(ev->buf, sizeof(ev->buf) - 2 * (sizeof(SOCKADDR_IN) + 16), sizeof(sockaddr_in) + 16,
+			sizeof(sockaddr_in) + 16, (sockaddr**)&sockaddrLocal, &nLocalLen, (sockaddr**)&sockaddrRemote, &nRemoteLen);
+
 		socket * newsocket = (socket*)ev->u;
 		newsocket->type = SOCKET_TYPE_PACCEPT;
-		poller->on_accept(s->id, newsocket->id);
+		if (s->opt.accept)
+			s->opt.accept(s, newsocket,err);
 		errno_type dummy;
 		poller->relisten(s, ev, dummy);
 		poller->post_recv(newsocket, dummy);
 	}
 
-	int iocp::start_listen(const char * addr, int port, int backlog, errno_type& e)
+	int iocp::start_listen(const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
 	{
 		SetLastError(0);
 		SOCKET fd = do_listen(addr, port, backlog);
@@ -156,7 +184,12 @@ namespace net
 		}
 			
 		int id = reserve_id();
-		socket* s = new_fd(id, fd, true);
+		socket* s = new_fd(id, fd,opt, true);
+		if (!s)
+		{
+			e = GetLastError();
+			return 0;
+		}
 		s->type = SOCKET_TYPE_LISTEN;
 		if (!relisten(s, &s->op[ioevent_read],e))
 		{
@@ -174,13 +207,14 @@ namespace net
 			err = GetLastError();
 			return false;
 		}
-		socket* news = new_fd(reserve_id(), fd, false);
+		socket* news = new_fd(reserve_id(), fd,s->opt,true);
 		news->type = SOCKET_TYPE_PLISTEN;
 		ev->call = event_accept;
 		ev->u = news;
 		DWORD bytes = 0;
 		memset(&ev->op, 0, sizeof(ev->op));
 		SetLastError(0);
+		setsockopt(news->fd, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&s->fd, sizeof(s->fd));
 		if (!AcceptEx(s->fd, news->fd, ev->buf, 0, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, &bytes, &ev->op))
 		{
 			err = GetLastError();
@@ -191,6 +225,7 @@ namespace net
 				return false;
 			}			
 		}
+		
 		err = NO_ERROR;
 		return true;
 	}
@@ -305,26 +340,23 @@ namespace net
 	static void event_connect(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
 		s->type = SOCKET_TYPE_CONNECTED;
-		poller->on_connect(s->id);
-		errno_type dummy;
-		poller->post_recv(s, dummy);
+		if (s->opt.connect)
+			s->opt.connect(s,err);
+		if (err == NO_ERROR)
+		{
+			errno_type dummy;
+			poller->post_recv(s, dummy);
+		}
+		else
+			;// todo: close socket;
 	}
 
-	int iocp::start_connet(const char * host, int port, errno_type& err)
+	int iocp::start_connet(const char * host, int port, const socket_opt& opt, errno_type& err)
 	{
 		SetLastError(0);
 		LPFN_CONNECTEX ConnectEx = NULL;
 		GUID GuidConnectEx = WSAID_CONNECTEX;
 
-		uint32_t addr = inet_addr(host);
-
-		SOCKADDR_IN ai_hints;
-		memset(&ai_hints, 0, sizeof(ai_hints));
-		ai_hints.sin_family = AF_INET;
-		ai_hints.sin_addr.s_addr = addr;
-		ai_hints.sin_port = htons(port);
-
-		
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (fd == INVALID_SOCKET)
 		{
@@ -332,14 +364,38 @@ namespace net
 			return 0;
 		}
 
+		SOCKADDR_IN localaddr;
+		memset(&localaddr, 0, sizeof(localaddr));
+		localaddr.sin_family = AF_INET;
+
+		if (bind(fd, (SOCKADDR*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR)
+		{
+			closesocket(fd);
+			err = GetLastError();
+			return 0;
+		}
+
+		localaddr.sin_addr.s_addr = inet_addr(host);
+		localaddr.sin_port = htons(port);
+
 		int id = reserve_id();
-		socket * s = new_fd(id, fd, true);
+		socket * s = new_fd(id, fd, opt,true);
+		if (!s)
+		{
+			err = GetLastError();
+			return 0;
+		}
 		s->type = SOCKET_TYPE_CONNECTING;
 		s->op[ioevent_read].call = event_connect;
 		
 		DWORD bytes = 0;
-		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GuidConnectEx), &ConnectEx, sizeof(ConnectEx), &bytes, NULL, NULL);
-		BOOL result = ConnectEx(fd, (SOCKADDR*)&ai_hints, sizeof(ai_hints), 0, 0, 0, &s->op[1].op);
+		if (WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GuidConnectEx), &ConnectEx, sizeof(ConnectEx), &bytes, NULL, NULL) != 0)
+		{
+			err = GetLastError();
+			s->reset();
+			return 0;
+		}
+		BOOL result = ConnectEx(fd, (SOCKADDR*)&localaddr, sizeof(localaddr), 0, 0, &bytes, &s->op[ioevent_read].op);
 		if (!result)
 		{
 			err = GetLastError();
@@ -355,21 +411,31 @@ namespace net
 
 	static void event_send(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
-		s->wb.read_ok(sz);
-		poller->on_send(s->id,sz);
-/*		errno_type dummy;
-		if (ev->wsa.len>sz)
-			poller->resend(s, ev, dummy);
+		if (err!=NO_ERROR)
+		{
+			// todo: close
+		}
 		else
-*/			
-		poller->post_send(s);
+		{
+			s->wb.read_ok(sz);
+			errno_type dummy;
+			poller->post_send(s, dummy);
+		}
 	}
 
-	bool  iocp::resend(socket* s, io_event* ev, errno_type& err)
+	bool iocp::post_send(socket* s,errno_type& err)
 	{
+		char* ptr;
+		size_t sz;
+		if (!s->wb.readbuffer(&ptr, &sz))  return false;
+
 		DWORD bytes_transferred = 0;
 		DWORD send_flags = 0;// flags;
-		if (!WSASend(s->fd, &ev->wsa, 1, &bytes_transferred, send_flags, &ev->op, 0))
+		io_event* ev = &s->op[ioevent_write];
+		ev->wsa.buf = ptr;
+		ev->wsa.len = sz;
+		ev->call = event_send;
+		if (WSASend(s->fd, &ev->wsa, 1, &bytes_transferred, send_flags, &ev->op, 0)!=0)
 		{
 			err = GetLastError();
 			if (err != WSA_IO_PENDING)
@@ -381,47 +447,38 @@ namespace net
 		return true;
 	}
 
-	int iocp::post_send(socket* s)
-	{
-		io_event * ev = &s->op[ioevent_write];
-		ev->call = event_send;
-		char* ptr;
-		size_t sz;
-		if (s->wb.readbuffer(&ptr, &sz))
-		{
-			ev->wsa.len = sz;
-			ev->wsa.buf = ptr;
-			errno_type dummy;
-			resend(s, ev, dummy);
-		}
-		return 0;
-	}
-
 	static void event_recv(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
 		s->rb.write_ok(sz);
-		poller->on_recv(s->id, sz);
-		
-		errno_type dummy;
-		poller->post_recv(s,dummy);
+		s->opt.recv(s,err);
+		if (err!=NO_ERROR)
+		{
+			// todo: close
+		}
+		else
+		{
+			errno_type dummy;
+			poller->post_recv(s, dummy);
+		}
 	}
 
 	bool iocp::post_recv(socket* s,errno_type& err)
 	{
-		io_event * ev = &s->op[ioevent_read];
-		ev->call = event_recv;
+		
 		char* ptr;
 		size_t sz;
 		if (!s->rb.writebuffer(&ptr, &sz))
 			return false;
 
+		io_event * ev = &s->op[ioevent_read];
+		ev->call = event_recv;
 		ev->wsa.len = sz;
 		ev->wsa.buf = ptr;
 
-		DWORD bytes_transferred = 0;
+   		DWORD bytes_transferred = 0;
 		DWORD read_flags = 0;// flags;
 		SetLastError(0);
-		if (!WSARecv(s->fd, &ev->wsa, 1, &bytes_transferred, &read_flags, &ev->op, NULL))
+		if (WSARecv(s->fd, &ev->wsa, 1, &bytes_transferred, &read_flags, &ev->op, 0)!=0)
 		{
 			err = GetLastError();
 			if (err != WSA_IO_PENDING)
@@ -434,12 +491,20 @@ namespace net
 		return true;
 	}
 
-	int iocp::send(int id, char* data, size_t sz)
+	int iocp::send(int id, char* data, size_t sz,errno_type& err)
 	{
 		socket * s = getsocket(id);
 		s->wb.write(data, sz);
-		post_send(s);
+		post_send(s,err);
 		return 1;
+	}
+
+	socket* iocp::getsocket(int id)
+	{
+		socket * s = &slot[HASH_ID(id)];
+		if (s->type != SOCKET_TYPE_INVALID&&s->id == id)
+			return s;
+		return NULL;
 	}
 	
 	void iocp::force_close(socket * s)

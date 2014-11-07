@@ -17,6 +17,7 @@ namespace net
 		ring_buffer()
 		{
 			memset(this, 0, sizeof(*this));
+			init(4096);
 		}
 		~ring_buffer()
 		{
@@ -29,6 +30,7 @@ namespace net
 			if (sz>0)
 			{
 				buffer = new char[sz];
+				memset(buffer, 0, sz);
 				capacity = sz;
 			}
 		}
@@ -40,9 +42,9 @@ namespace net
 		{
 			size_t all = capacity - (_write - _read);
 			if (all < sz) return false;
-			_write += sz;
 			size_t wp = _write%capacity;
 			size_t rp = _read %capacity;
+			_write += sz;
 			if (wp>rp)
 			{
 				size_t w = capacity - wp;
@@ -63,8 +65,8 @@ namespace net
 			size_t wp = _write%capacity;
 			size_t rp = _read %capacity;
 			*ptr = &buffer[wp];
-			if (wp>rp)
-				*sz = capacity - wp;
+			if (wp>=rp)
+				*sz = capacity - wp-1;
 			else
 				*sz = rp - wp;
 			return true;
@@ -79,9 +81,9 @@ namespace net
 		{
 			size_t all = _write - _read;
 			if (all < sz) return false;
-			_read += sz;
 			size_t wp = _write%capacity;
 			size_t rp = _read %capacity;
+			_read += sz;
 			if (rp>wp)
 			{
 				size_t r = capacity - rp;
@@ -113,6 +115,11 @@ namespace net
 			assert(sz <= (_write - _read));
 			_read += sz;
 			return true;
+		}
+		void clean()
+		{
+			_read = 0;
+			_write = 0;
 		}
 	private:
 		char * buffer;

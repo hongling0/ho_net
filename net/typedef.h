@@ -18,4 +18,4 @@ typedef HANDLE handle_type;
 typedef SOCKET socket_type;
 typedef unsigned long errno_type;
 
-char * errno_str(errno_type e);
+extern	char * errno_str(errno_type e);

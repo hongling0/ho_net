@@ -33,3 +33,4 @@ ho/Debug/
 server/Debug/
 net/Debug/
 client/Debug/
+*.opensdf
