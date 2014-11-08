@@ -52,7 +52,7 @@ namespace net
 		event_fd = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 		if (event_fd == 0)
 		{
-			fprintf(stderr, "socket-server: create event pool failed.\n");
+			fprintf(stderr, "iocp: CreateIoCompletionPort failed. %s\n", errno_str(GetLastError()));
 			return;
 		}
 
@@ -155,14 +155,17 @@ namespace net
 		LPFN_GETACCEPTEXSOCKADDRS GetAcceptExSockAddrs;
 		GUID guid = WSAID_GETACCEPTEXSOCKADDRS;
 		DWORD bytes = 0;
-		SOCKADDR_IN* sockaddrLocal;
-		SOCKADDR_IN* sockaddrRemote;
-		int nLocalLen = sizeof(SOCKADDR_IN);
-		int nRemoteLen = sizeof(SOCKADDR_IN);
+		SOCKADDR_IN* local_addr;
+		SOCKADDR_IN* remote_addr;
+		int locallen = sizeof(SOCKADDR_IN);
+		int remotelen = sizeof(SOCKADDR_IN);
 		WSAIoctl(s->fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid),&GetAcceptExSockAddrs, sizeof(GetAcceptExSockAddrs), &bytes, NULL, NULL);
 
 		GetAcceptExSockAddrs(ev->buf, sizeof(ev->buf) - 2 * (sizeof(SOCKADDR_IN) + 16), sizeof(sockaddr_in) + 16,
-			sizeof(sockaddr_in) + 16, (sockaddr**)&sockaddrLocal, &nLocalLen, (sockaddr**)&sockaddrRemote, &nRemoteLen);
+			sizeof(sockaddr_in) + 16, (sockaddr**)&local_addr, &locallen, (sockaddr**)&remote_addr, &remotelen);
+
+		printf("remote[%s:%d]->local[%s:%d]\n", inet_ntoa(local_addr->sin_addr),
+			(int)ntohs(local_addr->sin_port), inet_ntoa(remote_addr->sin_addr), (int)ntohs(remote_addr->sin_port));
 
 		socket * newsocket = (socket*)ev->u;
 		newsocket->type = SOCKET_TYPE_PACCEPT;

@@ -4,6 +4,8 @@
 
 using namespace net;
 
+#define MSG "hello client\n"
+
 iocp poller;
 
 bool on_accept(net::socket * s, net::socket * n,errno_type e)
@@ -21,6 +23,8 @@ bool on_recv(net::socket * s,errno_type e)
 		std::string str(ptr, sz);
 		printf("%d recv %s\n", s->id, str.c_str());
 		s->rb.read_ok(sz);
+		errno_type dummy;
+		poller.send(s->id, MSG, sizeof(e), dummy);
 	}
 	else
 	{

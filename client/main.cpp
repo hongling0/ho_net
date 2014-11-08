@@ -2,7 +2,7 @@
 
 #include "iocp.h"
 
-#define MSG "hello world\n"
+#define MSG "hello server\n"
 using namespace net;
 
 iocp poller;
