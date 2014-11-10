@@ -59,6 +59,12 @@ namespace net
 		};
 	};
 
+	struct message
+	{
+		uint8_t type;
+		void* data;
+	};
+
 	class socket
 	{
 	public:

@@ -9,6 +9,7 @@
 #include <WS2tcpip.h>
 #include <MSWSock.h>
 #include <winsock.h>
+#include <process.h> 
 #pragma comment(lib,"ws2_32.lib")
 #pragma comment(lib,"mswsock.lib")
 
