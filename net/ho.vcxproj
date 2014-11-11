@@ -16,6 +16,7 @@
     <ClInclude Include="iocp.h" />
     <ClInclude Include="lock.h" />
     <ClInclude Include="socket.h" />
+    <ClInclude Include="socketserver.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>
   <ItemGroup>
@@ -23,6 +24,7 @@
     <ClCompile Include="iocp.cpp" />
     <ClCompile Include="poller.cpp" />
     <ClCompile Include="poller.h" />
+    <ClCompile Include="socketserver.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3BD78F04-9C62-41DF-A86E-06DD32679AF0}</ProjectGuid>

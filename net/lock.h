@@ -23,6 +23,28 @@ namespace sys
 		RTL_CRITICAL_SECTION cs;
 	};
 
+	struct rwlock
+	{
+		rwlock()
+		{
+			InitializeSRWLock(&l);
+		}
+		void rlock()
+		{
+			AcquireSRWLockShared(&l);
+		}
+		void wlock()
+		{
+			AcquireSRWLockExclusive(&l);
+		}
+		void unlock()
+		{
+			ReleaseSRWLockShared(&l);
+		}
+	private:
+		SRWLOCK l;
+	};
+
 	template<typename T>
 	struct lock_guard
 	{
