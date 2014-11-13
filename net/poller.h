@@ -5,7 +5,7 @@
 
 namespace net
 {
-	typedef void(*iocp_handle)(void* context, io_event* ev, size_t bytes, errno_type e);
+	typedef void(*iocp_handle)(void* context, event_head* ev, size_t bytes, errno_type e);
 	class iocp
 	{
 	public:
@@ -67,12 +67,12 @@ namespace net
 				}
 				else if (op)
 				{
-					io_event* ev = CONTAINING_RECORD(op, io_event, op);
+					event_head* ev = CONTAINING_RECORD(op, event_head, op);
 					handle((void*)completion_key, ev, bytes, last_error);
 				}
 			}
 		}
-		bool post(void* context, io_event* ev, size_t bytes, errno_type e)
+		bool post(void* context, event_head* ev, size_t bytes, errno_type e)
 		{
 			if (thr = 0)
 				return false;
@@ -91,7 +91,9 @@ namespace net
 		uint8_t _id;
 	};
 
-	int register_poller(iocp*  e);
-	void unregister_poller(iocp* e);
+//	int register_poller(iocp*  e);
+//	void unregister_poller(iocp* e);
 	iocp* grub_poller(int id);
+	void drop_poller(iocp*);
+	int create_poller(iocp_handle h);
 }

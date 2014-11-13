@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="atomic.h" />
     <ClInclude Include="buffer.h" />
+    <ClInclude Include="event.h" />
     <ClInclude Include="iocp.h" />
     <ClInclude Include="lock.h" />
     <ClInclude Include="socket.h" />

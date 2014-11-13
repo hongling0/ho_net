@@ -16,6 +16,13 @@ namespace net
 		{
 			cnt = 0;
 		}
+		~iocp_list()
+		{
+			for (size_t i = 0; i < cnt; i++)
+			{
+				delete list[i];
+			}
+		}
 		int reg(iocp* e)
 		{
 			m.wlock();
@@ -59,14 +66,13 @@ namespace net
 		uint8_t cnt;
 		rwlock m;
 	};
+
 	static iocp_list T;
-	int register_poller(iocp*  e)
+
+	int create_poller(iocp_handle h)
 	{
-		return T.reg(e);
-	}
-	void unregister_poller(iocp* e)
-	{
-		return T.unreg(e);
+		iocp* p = new iocp(h);
+		return T.reg(p);
 	}
 
 	iocp* grub_poller(int id)

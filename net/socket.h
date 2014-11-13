@@ -5,12 +5,16 @@
 
 #include "typedef.h"
 #include "buffer.h"
-
+#include "event.h"
 
 
 namespace net
 {
-
+	enum 
+	{
+		io_event_type_sys,
+		io_event_type_logic,
+	};
 	enum socket_type_enum
 	{
 		SOCKET_TYPE_INVALID = 0,
@@ -24,20 +28,24 @@ namespace net
 		SOCKET_TYPE_BIND,
 	};
 
-	enum ioevent_type
+	enum socket_ev_type
 	{
-		ioevent_read,
-		ioevent_write,
-		ioevent_max,
+		socket_ev_read,
+		socket_ev_write,
+		socket_ev_max,
 	};
 
-	class iocp;
 	class socket;
+	class socket_server;
 	struct io_event;
-	typedef void(*ioevent_call)(iocp*, io_event*,socket*, errno_type, size_t);
-	struct io_event 
+	typedef void(*ioevent_call)(socket_server*, io_event*,socket*, errno_type, size_t);
+
+	struct io_event : public event_head
 	{
-		OVERLAPPED op;
+		io_event()
+		{
+			type = io_event_type_sys;
+		}
 		ioevent_call call;
 		void * u;
 		WSABUF wsa;
@@ -88,7 +96,7 @@ namespace net
 		int id;
 		SOCKET fd;
 		atomic_type type;
-		io_event op[ioevent_max];
+		io_event op[socket_ev_max];
 		atomic_type pending;
 		ring_buffer wb;
 		ring_buffer rb;
