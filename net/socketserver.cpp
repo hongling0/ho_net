@@ -54,39 +54,31 @@ namespace net
 		socket* new_fd(int id, socket_type fd, const socket_opt& opt, bool add);
 		socket* getsocket(int id);
 		void force_close(socket * s);
+		void socket_error(socket* s, errno_type e);
+		bool post2logic(int logic, event_head* ev, errno_type err);
 	private:
 		atomic_type alloc_id;
 		socket slot[MAX_SOCKET];
 		iocp& iocp;
 	};
 
-	/*class socketserver
+	bool  socket_server::post2logic(int logic,event_head* ev,errno_type err)
 	{
-	public:
-		~socketserver();
-		bool start_run(size_t t);
+		iocp* p = grub_poller(logic);
+		if (!p || !p->post(0, ev, 0, err))
+		{
+			delete ev;
+			return false;
+		}
+		return true;
+	}
 
-		int start_listen(const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e);
-		int start_connet(const char * addr, int port, const socket_opt& opt, errno_type& e);
-		int send(int id, char* data, size_t sz, errno_type& e);
-		//		int async_send(int id,const buf_t* bufs, size_t count, errno_type& e);
-		bool post_recv(socket* s, errno_type& err);
-		bool post_send(socket*, errno_type& err);
-		int post_close(int id);
-
-		bool relisten(socket* s, io_event* ev, errno_type& e);
-	private:
-		socket* getsocket(int id);
-		int reserve_id();
-		void force_close(socket* s);
-		socket * new_fd(int id, socket_type fd, const socket_opt& opt, bool add);
-	private:
-		atomic_type alloc_id;
-		socket slot[MAX_SOCKET];
-		handle_type event_fd;
-		iocp* _iocp;
-	};*/
-
+	void socket_server :: socket_error(socket* s, errno_type err)
+	{
+		ev_socketerr* ev_logic = new ev_socketerr;
+		ev_logic->id = s->id;
+		post2logic(s->logic, ev_logic, err);
+	}
 
 	socket_server::~socket_server()
 	{
@@ -193,10 +185,19 @@ namespace net
 
 		socket * newsocket = (socket*)ev->u;
 		newsocket->type = SOCKET_TYPE_PACCEPT;
-		if (s->opt.accept)
-			s->opt.accept(s, newsocket,err);
+
+		ev_accept* ev_logic = new ev_accept;
+		ev_logic->id = newsocket->id;
+		ev_logic->listenid = s->id;
+		iocp* p=grub_poller(s->logic);
+		if (!p || !p->post(0, ev_logic, 0, err))
+		{
+			delete ev_logic;
+			poller->closesocket(newsocket);
+		}// todo 
+
 		poller->ev_listen_start(s, ev);
-		poller->post_recv(newsocket, dummy);
+		poller->ev_recv_start(newsocket);
 	}
 	
 	errno_type socket_server::ev_listen_start(socket* s, io_event* ev)
@@ -257,12 +258,19 @@ namespace net
 	static void event_connect(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
 		s->type = SOCKET_TYPE_CONNECTED;
-		if (s->opt.connect)
-			s->opt.connect(s,err);
+
+		ev_connect* ev_logic = new ev_connect;
+		ev_logic->id = s->id;
+		iocp* p = grub_poller(s->logic);
+		if (!p || !p->post(0, ev_logic, 0, err))
+		{
+			delete ev_logic;
+			poller->closesocket(s);
+		}// todo 
+
 		if (err == NO_ERROR)
 		{
-			errno_type dummy;
-			poller->post_recv(s, dummy);
+			poller->ev_recv_start(s);
 		}
 		else
 			;// todo: close socket;
@@ -330,7 +338,13 @@ namespace net
 	{
 		if (err!=NO_ERROR)
 		{
-			// todo: close
+			ev_socketerr* ev_logic = new ev_socketerr;
+			ev_logic->id = s->id;
+			iocp* p = grub_poller(s->logic);
+			if (!p || !p->post(0, ev_logic, 0, err))
+			{
+				delete ev_logic;
+			}// todo 
 		}
 		else
 		{
@@ -441,33 +455,21 @@ namespace net
 
 	namespace network
 	{
-		
-
 		static void iocp_handle(void* context, event_head* ev, size_t bytes, errno_type e)
 		{
 			socket_server*  poller = &s;
-			switch (ev->type)
-			{
-			case io_event_type_sys:
-			{
-				io_event* ent = (io_event*)ev;
-				ent->call(poller, ent, (socket*)context, e, bytes);
-			}
-				break;
-			case io_event_type_logic:
-				break;
-			default:
-				assert(false);
-			}
+			io_event* ent = (io_event*)ev;
+			ent->call(poller, ent, (socket*)context, e, bytes);
 		}
 
-		static int iocp_id = create_poller(iocp_handle);
+		static int iocp_id = create_poller();
 		static socket_server s(*grub_poller(iocp_id));
 
 		void start(size_t thr)
 		{
 			iocp* e = grub_poller(iocp_id);
 			e->start_thread(thr);
+			e->reghandle(io_event_type_sys, iocp_handle);
 		}
 		void stop()
 		{

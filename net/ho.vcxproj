@@ -14,15 +14,17 @@
     <ClInclude Include="atomic.h" />
     <ClInclude Include="buffer.h" />
     <ClInclude Include="event.h" />
-    <ClInclude Include="iocp.h" />
+    <ClInclude Include="logic.h" />
     <ClInclude Include="lock.h" />
+    <ClInclude Include="logic_store.h" />
     <ClInclude Include="socket.h" />
     <ClInclude Include="socketserver.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="errmsg.cpp" />
-    <ClCompile Include="iocp.cpp" />
+    <ClCompile Include="logic.cpp" />
+    <ClCompile Include="logic_store.cpp" />
     <ClCompile Include="poller.cpp" />
     <ClCompile Include="poller.h" />
     <ClCompile Include="socketserver.cpp" />

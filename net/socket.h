@@ -8,13 +8,8 @@
 #include "event.h"
 
 
-namespace net
+namespace frame
 {
-	enum 
-	{
-		io_event_type_sys,
-		io_event_type_logic,
-	};
 	enum socket_type_enum
 	{
 		SOCKET_TYPE_INVALID = 0,
@@ -94,6 +89,7 @@ namespace net
 			rb.clean();
 		}
 		int id;
+		int logic;
 		SOCKET fd;
 		atomic_type type;
 		io_event op[socket_ev_max];

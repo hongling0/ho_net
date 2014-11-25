@@ -6,77 +6,86 @@
 #define MAX_POLLER 256
 
 using namespace sys;
-namespace net
+using namespace frame;
+
+iocp::iocp()
 {
-
-	class iocp_list
+	_id = 0;
+	fd = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
+	memset(handle, 0, sizeof handle);
+}
+iocp::~iocp()
+{
+	CloseHandle(fd);
+}
+void iocp::start_thread(uint8_t n)
+{
+	n = (n == 0) ? 1 : n;
+	for (; thr < n; thr++)
 	{
-	public:
-		iocp_list()
-		{
-			cnt = 0;
-		}
-		~iocp_list()
-		{
-			for (size_t i = 0; i < cnt; i++)
-			{
-				delete list[i];
-			}
-		}
-		int reg(iocp* e)
-		{
-			m.wlock();
-			if (cnt >= MAX_POLLER-1)
-			{
-				m.unlock();
-				return 0;
-			}
-			list[cnt++] = e;
-			return cnt;
-		}
-		void unreg(iocp* e)
-		{
-			m.wlock();
-			for (size_t i = 0; i < MAX_POLLER; i++)
-			{
-				if (list[i] == e)
-				{
-					list[i] = NULL;
-					m.unlock();
-					return;
-				}
-			}
-			m.unlock();
-		}
-		iocp * grub(int id)
-		{
-			if (id == 0) return NULL;
-			m.rlock();
-			if (id > cnt)
-			{
-				iocp * ret = list[id - 1];
-				m.unlock();
-				return ret;
-			}
-			m.unlock();
-			return NULL;
-		}
-	private:
-		iocp* list[MAX_POLLER];
-		uint8_t cnt;
-		rwlock m;
-	};
-
-	static iocp_list T;
-
-	int create_poller(iocp_handle h)
-	{
-		iocp* p = new iocp(h);
-		return T.reg(p);
+		_beginthread(THREAD_START_ROUTINE, 0, this);
 	}
-
-	iocp* grub_poller(int id)
-	{
-		return T.grub(id);
+	if (thr>n){
+		PostQueuedCompletionStatus(fd, thr - n, (ULONG_PTR)this, &quit);
 	}
+	thr = n;
+}
+void iocp::stop_thread()
+{
+	if (thr>0){
+		PostQueuedCompletionStatus(fd, thr, (ULONG_PTR)this, &quit);
+		thr = 0;
+	}
+}
+static void THREAD_START_ROUTINE(LPVOID lpThreadParameter)
+{
+	iocp* p = (iocp*)lpThreadParameter;
+	p->run();
+}
+void iocp::run()
+{
+	for (;;)
+	{
+		DWORD bytes;
+		DWORD completion_key = 0;
+		LPOVERLAPPED op;
+		SetLastError(0);
+		BOOL ret = GetQueuedCompletionStatus(fd, &bytes, &completion_key, &op, 500);
+		DWORD last_error = ::GetLastError();
+		if (!ret)
+		{
+			if (last_error == WAIT_TIMEOUT)
+				continue;
+			else
+				assert(false);
+		}
+		if (op == &quit)
+		{
+			if (--bytes > 0)
+				PostQueuedCompletionStatus(fd, bytes, (ULONG_PTR)this, &quit);
+			break;
+		}
+		else if (op)
+		{
+			event_head* ev = CONTAINING_RECORD(op, event_head, op);
+			handle((void*)completion_key, ev, bytes, last_error);
+		}
+	}
+}
+bool iocp::post(void* context, event_head* ev, size_t bytes, errno_type e)
+{
+	if (thr = 0)
+		return false;
+	return PostQueuedCompletionStatus(fd, bytes, (ULONG_PTR)context, &ev->op);
+}
+bool iocp::append_socket(socket_type s, void* context)
+{
+	return CreateIoCompletionPort((HANDLE)s, fd, (ULONG_PTR)context, 0);
+}
+
+bool iocp::reghandle(uint8_t type, iocp_handle h)
+{
+	if (type >= io_event_type_max) return false;
+	if (handle[type]) return false;
+	handle[type] = h;
 }
