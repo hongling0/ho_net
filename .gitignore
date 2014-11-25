@@ -34,3 +34,5 @@ server/Debug/
 net/Debug/
 client/Debug/
 *.opensdf
+*.tf1
+*.tfb
