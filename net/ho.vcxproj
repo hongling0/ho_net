@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="atomic.h" />
+    <ClInclude Include="binary_arry.h" />
     <ClInclude Include="buffer.h" />
     <ClInclude Include="event.h" />
     <ClInclude Include="listener.h" />

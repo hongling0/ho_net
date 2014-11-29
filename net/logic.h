@@ -3,6 +3,7 @@
 #include "typedef.h"
 #include "lock.h"
 #include "poller.h"
+#include "binary_arry.h"
 
 namespace frame
 {
@@ -16,6 +17,9 @@ namespace frame
 	};
 
 	class logic_msg;
+	class logic;
+	class msg_handle_store;
+	typedef void(*msg_handle)(logic*,logic_msg*);
 	class logic : public nocopyable
 	{
 	public:
@@ -25,13 +29,14 @@ namespace frame
 		{
 			return logic_id;
 		}
+		void addhandler(int msg_id, msg_handle h);
 	protected:
 		friend logic_msg;
 		virtual void on_logic(logic_msg* msg);
 	protected:
 		iocp& io;
-	private:
 		const int logic_id;
+		binary_arry array;
 	};
 
 
@@ -52,11 +57,11 @@ namespace frame
 	int msg_id_alloc::id = 0;
 
 	template<class T>
-	struct logic_msg_id
+	struct msg_id
 	{
-		static const int msg_id;
+		static const int id;
 	};
-	template<class T> logic_msg_id::msg_id = msg_id_alloc::alloc();
+	template<class T> msg_id::id = msg_id_alloc::alloc();
 
 	struct logic_msg : public event_head
 	{
@@ -66,19 +71,19 @@ namespace frame
 		static void logic_call(void* data, event_head* head, size_t s, errno_type e)
 		{
 			logic* lgc = (logic*)data;
-			lgc->on_msg((logic_msg*)head);
+			lgc->on_logic((logic_msg*)head);
 		}
 	};
 
 	template<class T>
 	struct logic_template : public logic_msg
 	{
-		logic_template():logic_msg(typename logic_msg_id<T>::msg_id){}
+		logic_template():logic_msg(typename msg_id<T>::msg_id){}
 	};
 
 #define LOGIC_MSG(n) struct n : public logic_template<n>
 
-	LOGIC_MSG(logic_recv)
+	LOGIC_MSG(logic_accept)
 	{
 		int id;
 		int listenid;
@@ -91,10 +96,10 @@ namespace frame
 		errno_type err;
 	};
 
-	LOGIC_MSG(logic_read)
+	LOGIC_MSG(logic_recv)
 	{
 		int id;
-		//ring_buffer* buffer;
+		ring_buffer* buffer;
 	};
 
 	LOGIC_MSG(logic_socketerr)
