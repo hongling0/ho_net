@@ -21,7 +21,7 @@
 #define SOCKET_TYPE_BIND 8
 
 
-namespace net
+namespace frame
 {
 	static struct startnetwork
 	{
@@ -36,35 +36,31 @@ namespace net
 		}
 	}  autoswitch;
 
-	class socket_server
+	socket_server::socket_server(iocp& e) :logic(e){}
 	{
-	public:
-		socket_server(iocp& e) :iocp(e){}
-		~socket_server();
-		int start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e);
-		int start_connet(int logic, const char * addr, int port, const socket_opt& opt, errno_type& e);
-		errno_type start_send(int fd, char* data, size_t sz);
-		errno_type start_close(int fd);
+		static GUID guidTransmitFile = WSAID_TRANSMITFILE;
+		static GUID guidAcceptEx = WSAID_ACCEPTEX;
+		static GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
+		static GUID guidTransmitPackets = WSAID_TRANSMITPACKETS;
+		static GUID guidConnectEx = WSAID_CONNECTEX;
+		static GUID guidDisconnectEx = WSAID_DISCONNECTEX;
+		static GUID guidWSARecvMsg = WSAID_WSARECVMSG;
 
-		errno_type ev_listen_start(socket* s, io_event* ev);
-		errno_type ev_send_start(socket* s);
-		errno_type ev_recv_start(socket* s);
-	protected:
-		int reserve_id();
-		socket* new_fd(int id, socket_type fd, const socket_opt& opt, bool add);
-		socket* getsocket(int id);
-		void force_close(socket * s);
-		void socket_error(socket* s, errno_type e);
-		bool post2logic(int logic, event_head* ev, errno_type err);
-	private:
-		atomic_type alloc_id;
-		socket slot[MAX_SOCKET];
-		iocp& iocp;
-	};
+		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_IP, NULL, 0, WSA_FLAG_OVERLAPPED);
+		DWORD bytes;
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidTransmitFile, sizeof(guidTransmitFile), &TransmitFile, sizeof(TransmitFile), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx), &AcceptEx, sizeof(AcceptEx), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidGetAcceptExSockaddrs, sizeof(guidGetAcceptExSockaddrs), &GetAcceptExSockaddrs, sizeof(GetAcceptExSockaddrs), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidTransmitPackets, sizeof(guidTransmitPackets), &TransmitPackets, sizeof(TransmitPackets), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidTransmitFile, sizeof(guidTransmitFile), &TransmitFile, sizeof(TransmitFile), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx), &ConnectEx, sizeof(ConnectEx), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidDisconnectEx, sizeof(guidDisconnectEx), &DisconnectEx, sizeof(DisconnectEx), &bytes, NULL, NULL);
+		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidWSARecvMsg, sizeof(guidWSARecvMsg), &WSARecvMsg, sizeof(WSARecvMsg), &bytes, NULL, NULL);
+	}
 
-	bool  socket_server::post2logic(int logic,event_head* ev,errno_type err)
+	bool  socket_server::post2logic(int logic_id,event_head* ev,errno_type err)
 	{
-		iocp* p = grub_poller(logic);
+		logic* p = grub_logic(logic_id);
 		if (!p || !p->post(0, ev, 0, err))
 		{
 			delete ev;
@@ -112,14 +108,14 @@ namespace net
 		return -1;
 	}
 
-	socket * socket_server::new_fd(int id, socket_type fd, const socket_opt& opt, bool add)
+	socket * socket_server::new_fd(int id,int logic_id, socket_type fd, const socket_opt& opt, bool add)
 	{
 		socket * s = &slot[HASH_ID(id)];
 		assert(s->type == SOCKET_TYPE_RESERVE);
 
 		if (add) {
 			SetLastError(0);
-			if (!iocp.append_socket(fd,s))
+			if (!io.append_socket(fd,s))
 			{
 				s->type = SOCKET_TYPE_INVALID;
 				return NULL;
@@ -129,6 +125,7 @@ namespace net
 		s->id = id;
 		s->fd = fd;
 		s->opt = opt;
+		s->logic = logic_id;
 		return s;
 	}
 
@@ -168,16 +165,12 @@ namespace net
 
 	static void on_ev_listen(socket_server* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
-		LPFN_GETACCEPTEXSOCKADDRS GetAcceptExSockAddrs;
-		GUID guid = WSAID_GETACCEPTEXSOCKADDRS;
-		DWORD bytes = 0;
 		SOCKADDR_IN* local_addr;
 		SOCKADDR_IN* remote_addr;
 		int locallen = sizeof(SOCKADDR_IN);
 		int remotelen = sizeof(SOCKADDR_IN);
-		WSAIoctl(s->fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid),&GetAcceptExSockAddrs, sizeof(GetAcceptExSockAddrs), &bytes, NULL, NULL);
 
-		GetAcceptExSockAddrs(ev->buf, sizeof(ev->buf) - 2 * (sizeof(SOCKADDR_IN) + 16), sizeof(sockaddr_in) + 16,
+		GetAcceptExSockaddrs(ev->buf, sizeof(ev->buf) - 2 * (sizeof(SOCKADDR_IN) + 16), sizeof(sockaddr_in) + 16,
 			sizeof(sockaddr_in) + 16, (sockaddr**)&local_addr, &locallen, (sockaddr**)&remote_addr, &remotelen);
 
 		printf("remote[%s:%d]->local[%s:%d]\n", inet_ntoa(local_addr->sin_addr),
@@ -189,8 +182,7 @@ namespace net
 		ev_accept* ev_logic = new ev_accept;
 		ev_logic->id = newsocket->id;
 		ev_logic->listenid = s->id;
-		iocp* p=grub_poller(s->logic);
-		if (!p || !p->post(0, ev_logic, 0, err))
+		if (poller->send(s->logic, PTYPE_SOCKET, 0, ev_logic, sizeof(*ev_logic)))
 		{
 			delete ev_logic;
 			poller->closesocket(newsocket);
@@ -207,7 +199,7 @@ namespace net
 		if (fd == INVALID_SOCKET) {
 			return GetLastError();
 		}
-		socket* news = new_fd(reserve_id(), fd,s->opt,true);
+		socket* news = new_fd(reserve_id(),s->logic,fd,s->opt,true);
 		news->type = SOCKET_TYPE_PLISTEN;
 		ev->call = on_ev_listen;
 		ev->u = news;
@@ -239,7 +231,7 @@ namespace net
 		}
 
 		int id = reserve_id();
-		socket* s = new_fd(id, fd, opt, true);
+		socket* s = new_fd(id,logic,fd, opt, true);
 		if (!s)
 		{
 			e = GetLastError();
@@ -255,14 +247,13 @@ namespace net
 		return id;
 	}
 
-	static void event_connect(iocp* poller, io_event* ev, socket* s, errno_type err, size_t sz)
+	static void event_connect(socket_server* poller, io_event* ev, socket* s, errno_type err, size_t sz)
 	{
 		s->type = SOCKET_TYPE_CONNECTED;
 
 		ev_connect* ev_logic = new ev_connect;
 		ev_logic->id = s->id;
-		iocp* p = grub_poller(s->logic);
-		if (!p || !p->post(0, ev_logic, 0, err))
+		if (poller->send(s->logic, PTYPE_SOCKET, 0, ev_logic, sizeof(*ev_logic)))
 		{
 			delete ev_logic;
 			poller->closesocket(s);
@@ -447,52 +438,24 @@ namespace net
 		s->reset();
 	}
 
+	void socket_server::on_msg(logic_msg* msg,size_t sz,errno_type err)
+	{
+		switch (msg->type)
+		{
+		case PTYPE_SYSTEM:
+		{
+			io_event * ev = (io_event*)msg->data;
+			ev->call(this, ev, ev->s, err, sz);
+		}
+			break;
+		default:
+			assert(false); 
+		}
+	}
+
 /*	int socket_server::post_close(int id)
 	{
 		return 0;
 	}
 */
-
-	namespace network
-	{
-		static void iocp_handle(void* context, event_head* ev, size_t bytes, errno_type e)
-		{
-			socket_server*  poller = &s;
-			io_event* ent = (io_event*)ev;
-			ent->call(poller, ent, (socket*)context, e, bytes);
-		}
-
-		static int iocp_id = create_poller();
-		static socket_server s(*grub_poller(iocp_id));
-
-		void start(size_t thr)
-		{
-			iocp* e = grub_poller(iocp_id);
-			e->start_thread(thr);
-			e->reghandle(io_event_type_sys, iocp_handle);
-		}
-		void stop()
-		{
-			iocp* e = grub_poller(iocp_id);
-			e->stop_thread();
-		}
-		int start_listen(int logic, const char * addr, int port, int backlog, errno_type& e)
-		{
-			socket_opt opt;
-			return s.start_listen(logic, addr, port, backlog, opt, e);
-		}
-		int start_connet(int logic, const char * addr, int port, errno_type& e)
-		{
-			socket_opt opt;
-			return s.start_connet(logic, addr, port, opt, e);
-		}
-		errno_type start_send(int fd, char* data, size_t sz)
-		{
-			return s.start_send(fd, data, sz);
-		}
-		errno_type start_close(int fd)
-		{
-			return s.start_close(fd);
-		}
-	}
 }

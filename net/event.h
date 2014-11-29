@@ -5,7 +5,7 @@
 
 #include "typedef.h"
 #include "buffer.h"
-
+#include "logic.h"
 
 
 namespace frame
@@ -19,12 +19,6 @@ namespace frame
 		io_event_type_error,
 
 		io_event_type_max,
-	};
-
-	struct event_head
-	{
-		OVERLAPPED op;
-		uint8_t type;
 	};
 
 	struct ev_accept : event_head
