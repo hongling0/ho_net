@@ -12,9 +12,8 @@ namespace frame
 {
 	iocp::iocp()
 	{
-		_id = 0;
 		fd = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
-		memset(handle, 0, sizeof handle);
+		thr = 0;
 	}
 	iocp::~iocp()
 	{
@@ -77,7 +76,7 @@ namespace frame
 						ev->call()
 				}
 				logic_msg* ev = (logic_msg*)op;
-				lgc->on_msg(ev, bytes, last_error);
+				ev->call ((void*)completion_key, ev, bytes, last_error);
 			}
 		}
 	}
@@ -92,10 +91,4 @@ namespace frame
 		return CreateIoCompletionPort((HANDLE)s, fd, (ULONG_PTR)context, 0);
 	}
 
-	bool iocp::reghandle(uint8_t type, iocp_handle h)
-	{
-		if (type >= io_event_type_max) return false;
-		if (handle[type]) return false;
-		handle[type] = h;
-	}
 }

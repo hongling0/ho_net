@@ -8,7 +8,7 @@
 
 
 
-namespace net
+namespace frame
 {
 
 	class ring_buffer

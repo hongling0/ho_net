@@ -36,3 +36,4 @@ client/Debug/
 *.opensdf
 *.tf1
 *.tfb
+*.orig

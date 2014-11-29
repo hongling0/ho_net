@@ -6,7 +6,6 @@
 
 namespace frame
 {
-
 	class nocopyable
 	{
 	public:
@@ -16,27 +15,7 @@ namespace frame
 		nocopyable operator = (const nocopyable&);
 	};
 
-	enum logic_msg_type
-	{
-		PTYPE_SYSTEM,
-		PTYPE_SOCKET,
-		PTYPE_TEXT,
-	};
-
-	struct event_head
-	{
-		OVERLAPPED op;
-		int type;
-	};
-
-	struct logic_msg : public event_head
-	{
-		int destination;
-		int source;
-		void* data;
-		size_t sz;
-	};
-
+	class logic_msg;
 	class logic : public nocopyable
 	{
 	public:
@@ -46,7 +25,8 @@ namespace frame
 		{
 			return logic_id;
 		}
-		void on_message(event_head* head, size_t sz, errno_type err);
+	protected:
+		friend logic_msg;
 		virtual void on_logic(logic_msg* msg);
 	protected:
 		iocp& io;
@@ -54,5 +34,72 @@ namespace frame
 		const int logic_id;
 	};
 
-	logic* grub_logic(int logic_id);
+
+	typedef void(*event_call)(void*, event_head*, size_t, errno_type);
+
+	struct event_head
+	{
+		OVERLAPPED op;
+		event_call call;
+	};
+
+	struct msg_id_alloc
+	{
+		static int alloc() { return id++; }
+	private:
+		static int id;
+	};
+	int msg_id_alloc::id = 0;
+
+	template<class T>
+	struct logic_msg_id
+	{
+		static const int msg_id;
+	};
+	template<class T> logic_msg_id::msg_id = msg_id_alloc::alloc();
+
+	struct logic_msg : public event_head
+	{
+		logic_msg(int id) :msg_id(id){ call = logic_call; }
+		const int msg_id;
+	private:
+		static void logic_call(void* data, event_head* head, size_t s, errno_type e)
+		{
+			logic* lgc = (logic*)data;
+			lgc->on_msg((logic_msg*)head);
+		}
+	};
+
+	template<class T>
+	struct logic_template : public logic_msg
+	{
+		logic_template():logic_msg(typename logic_msg_id<T>::msg_id){}
+	};
+
+#define LOGIC_MSG(n) struct n : public logic_template<n>
+
+	LOGIC_MSG(logic_recv)
+	{
+		int id;
+		int listenid;
+		errno_type err;
+	};
+
+	LOGIC_MSG(logic_connect)
+	{
+		int id;
+		errno_type err;
+	};
+
+	LOGIC_MSG(logic_read)
+	{
+		int id;
+		//ring_buffer* buffer;
+	};
+
+	LOGIC_MSG(logic_socketerr)
+	{
+		int id;
+		errno_type err;
+	};
 }
