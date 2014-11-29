@@ -10,9 +10,8 @@ using namespace frame;
 
 iocp::iocp()
 {
-	_id = 0;
 	fd = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
-	memset(handle, 0, sizeof handle);
+	thr = 0;
 }
 iocp::~iocp()
 {
@@ -68,7 +67,7 @@ void iocp::run()
 		else if (op)
 		{
 			event_head* ev = CONTAINING_RECORD(op, event_head, op);
-			handle((void*)completion_key, ev, bytes, last_error);
+			ev->call ((void*)completion_key, ev, bytes, last_error);
 		}
 	}
 }
@@ -83,9 +82,3 @@ bool iocp::append_socket(socket_type s, void* context)
 	return CreateIoCompletionPort((HANDLE)s, fd, (ULONG_PTR)context, 0);
 }
 
-bool iocp::reghandle(uint8_t type, iocp_handle h)
-{
-	if (type >= io_event_type_max) return false;
-	if (handle[type]) return false;
-	handle[type] = h;
-}

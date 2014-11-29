@@ -16,13 +16,9 @@ namespace frame
 		void run();
 		bool post(void* context, event_head* ev, size_t bytes, errno_type e);
 		bool append_socket(socket_type s, void* context);
-		uint8_t id() const { return _id; }
-		bool reghandle(uint8_t type, iocp_handle h);
 	protected:
 		handle_type fd;
 		uint8_t thr;
 		OVERLAPPED quit;
-		iocp_handle handle[io_event_type_max];
-		uint8_t _id;
 	};
 }

@@ -5,7 +5,7 @@
 
 #include "typedef.h"
 #include "buffer.h"
-#include "event.h"
+#include "logic.h"
 
 
 namespace frame
@@ -32,16 +32,9 @@ namespace frame
 
 	class socket;
 	class socket_server;
-	struct io_event;
-	typedef void(*ioevent_call)(socket_server*, io_event*,socket*, errno_type, size_t);
 
 	struct io_event : public event_head
 	{
-		io_event()
-		{
-			type = io_event_type_sys;
-		}
-		ioevent_call call;
 		void * u;
 		WSABUF wsa;
 		char buf[2*(sizeof(sockaddr_in) + 16)];
