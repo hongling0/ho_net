@@ -11,14 +11,14 @@
 
 namespace frame
 {
-	class listener : public logic
+	class connector : public logic
 	{
 	public:
-		listener(iocp& e, const char* _ip, int _port);
+		connector(iocp& e, const char* _ip, int _port);
 		bool start(protocol_call call = default_protocol);
 		void close();
 		
-		virtual void on_accept(int listenid, int newid);
+		virtual void on_connect(int id);
 		virtual void on_recv(int id, ring_buffer*buffer);
 		virtual void on_socketerr(int id, errno_type err);
 	private:

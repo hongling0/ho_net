@@ -22,7 +22,7 @@ int logic_store::resize()
 	new_size *= 2;
 	logic** newlist = (logic**)::malloc(sizeof(logic*)*new_size);
 	memset(newlist, 0, sizeof(logic*)*new_size);
-	for (size_t i = 0; i < slot_size; i++)
+	for (int i = 0; i < slot_size; i++)
 	{
 		int handle = slot[i]->handle();
 		int hash = handle ^ ((slot_size * 2) - 1);
@@ -39,7 +39,7 @@ int logic_store::reg(logic* lgc)
 	lock.wlock();
 	for (;;)
 	{
-		for (size_t i = 0; i < slot_size; i++)
+		for (int i = 0; i < slot_size; i++)
 		{
 			int handle = i + index;
 			int hash = handle & (slot_size - 1);

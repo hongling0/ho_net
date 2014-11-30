@@ -3,26 +3,9 @@
 #include "atomic.h"
 #include "poller.h"
 
-
-#define MAX_SOCKET_P 16
-#define MAX_SOCKET (1<<MAX_SOCKET_P)
-#define MIN_READ_BUFFER 64
-
-#define HASH_ID(id) (((unsigned)id) % MAX_SOCKET)
-
-#define SOCKET_TYPE_INVALID 0
-#define SOCKET_TYPE_RESERVE 1
-#define SOCKET_TYPE_PLISTEN 2
-#define SOCKET_TYPE_LISTEN 3
-#define SOCKET_TYPE_CONNECTING 4
-#define SOCKET_TYPE_CONNECTED 5
-#define SOCKET_TYPE_HALFCLOSE 6
-#define SOCKET_TYPE_PACCEPT 7
-#define SOCKET_TYPE_BIND 8
-
-
 namespace frame
 {
+
 	static struct startnetwork
 	{
 		startnetwork()
@@ -36,15 +19,17 @@ namespace frame
 		}
 	}  autoswitch;
 
-	socket_server::socket_server(iocp& e) :logic(e){}
+#define HASH_ID(id) (((unsigned)id) % MAX_SOCKET)
+
+	socket_server::socket_server(iocp& e) :logic(e)
 	{
-		static GUID guidTransmitFile = WSAID_TRANSMITFILE;
-		static GUID guidAcceptEx = WSAID_ACCEPTEX;
-		static GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
-		static GUID guidTransmitPackets = WSAID_TRANSMITPACKETS;
-		static GUID guidConnectEx = WSAID_CONNECTEX;
-		static GUID guidDisconnectEx = WSAID_DISCONNECTEX;
-		static GUID guidWSARecvMsg = WSAID_WSARECVMSG;
+		GUID guidTransmitFile = WSAID_TRANSMITFILE;
+		GUID guidAcceptEx = WSAID_ACCEPTEX;
+		GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
+		GUID guidTransmitPackets = WSAID_TRANSMITPACKETS;
+		GUID guidConnectEx = WSAID_CONNECTEX;
+		GUID guidDisconnectEx = WSAID_DISCONNECTEX;
+		GUID guidWSARecvMsg = WSAID_WSARECVMSG;
 
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_IP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		DWORD bytes;
@@ -56,30 +41,17 @@ namespace frame
 		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx), &ConnectEx, sizeof(ConnectEx), &bytes, NULL, NULL);
 		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidDisconnectEx, sizeof(guidDisconnectEx), &DisconnectEx, sizeof(DisconnectEx), &bytes, NULL, NULL);
 		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidWSARecvMsg, sizeof(guidWSARecvMsg), &WSARecvMsg, sizeof(WSARecvMsg), &bytes, NULL, NULL);
-	}
 
-	bool  socket_server::post2logic(int logic_id,event_head* ev,errno_type err)
-	{
-		logic* p = grub_logic(logic_id);
-		if (!p || !p->post(0, ev, 0, err))
+		for (int i = 0; i < MAX_SOCKET; i++)
 		{
-			delete ev;
-			return false;
+			slot[i] = new socket(*this);
 		}
-		return true;
-	}
-
-	void socket_server :: socket_error(socket* s, errno_type err)
-	{
-		ev_socketerr* ev_logic = new ev_socketerr;
-		ev_logic->id = s->id;
-		post2logic(s->logic, ev_logic, err);
 	}
 
 	socket_server::~socket_server()
 	{
 		for (int i = 0; i < MAX_SOCKET; i++) {
-			socket *s = &slot[i];
+			socket *s = slot[i];
 			if (s->type != SOCKET_TYPE_RESERVE) {
 				s->reset();
 			}
@@ -93,7 +65,7 @@ namespace frame
 			if (id < 0) {
 				id = atomic_add_fetch(&alloc_id, 0x7fffffff);
 			}
-			socket *s = &slot[HASH_ID(id)];
+			socket *s = slot[HASH_ID(id)];
 			if (s->type == SOCKET_TYPE_INVALID) {
 				if (atomic_cmp_set(&s->type, SOCKET_TYPE_INVALID, SOCKET_TYPE_RESERVE)) {
 					s->id = id;
@@ -108,14 +80,14 @@ namespace frame
 		return -1;
 	}
 
-	socket * socket_server::new_fd(int id,int logic_id, socket_type fd, const socket_opt& opt, bool add)
+	socket * socket_server::new_fd(int id, int logic_id, socket_type fd, const socket_opt& opt, bool add)
 	{
-		socket * s = &slot[HASH_ID(id)];
+		socket * s = slot[HASH_ID(id)];
 		assert(s->type == SOCKET_TYPE_RESERVE);
 
 		if (add) {
 			SetLastError(0);
-			if (!io.append_socket(fd,s))
+			if (!io.append_socket(fd, s))
 			{
 				s->type = SOCKET_TYPE_INVALID;
 				return NULL;
@@ -163,8 +135,12 @@ namespace frame
 		return INVALID_SOCKET;
 	}
 
-	static void on_ev_listen(socket_server* poller, io_event* ev, socket* s, errno_type err, size_t sz)
+	static void on_ev_listen(void* data, event_head* head, size_t sz, errno_type err)
 	{
+		socket* s = (socket*)data;
+		io_event* ev = (io_event*)head;
+		socket_server& io = s->io;
+
 		SOCKADDR_IN* local_addr;
 		SOCKADDR_IN* remote_addr;
 		int locallen = sizeof(SOCKADDR_IN);
@@ -179,19 +155,20 @@ namespace frame
 		socket * newsocket = (socket*)ev->u;
 		newsocket->type = SOCKET_TYPE_PACCEPT;
 
-		ev_accept* ev_logic = new ev_accept;
+		logic_accept* ev_logic = new logic_accept;
 		ev_logic->id = newsocket->id;
 		ev_logic->listenid = s->id;
-		if (poller->send(s->logic, PTYPE_SOCKET, 0, ev_logic, sizeof(*ev_logic)))
-		{
-			delete ev_logic;
-			poller->closesocket(newsocket);
-		}// todo 
+		ev_logic->err = err;
 
-		poller->ev_listen_start(s, ev);
-		poller->ev_recv_start(newsocket);
+		if (io.send(s->logic, ev_logic))
+		{
+			io.force_close(s);
+		}
+
+		io.ev_listen_start(s, ev);
+		io.ev_recv_start(newsocket);
 	}
-	
+
 	errno_type socket_server::ev_listen_start(socket* s, io_event* ev)
 	{
 		SetLastError(0);
@@ -199,7 +176,7 @@ namespace frame
 		if (fd == INVALID_SOCKET) {
 			return GetLastError();
 		}
-		socket* news = new_fd(reserve_id(),s->logic,fd,s->opt,true);
+		socket* news = new_fd(reserve_id(), s->logic, fd, s->opt, true);
 		news->type = SOCKET_TYPE_PLISTEN;
 		ev->call = on_ev_listen;
 		ev->u = news;
@@ -215,7 +192,7 @@ namespace frame
 				ev->u = NULL;
 				news->reset();
 				return err;
-			}			
+			}
 		}
 		return NO_ERROR;
 	}
@@ -231,7 +208,7 @@ namespace frame
 		}
 
 		int id = reserve_id();
-		socket* s = new_fd(id,logic,fd, opt, true);
+		socket* s = new_fd(id, logic, fd, opt, true);
 		if (!s)
 		{
 			e = GetLastError();
@@ -247,31 +224,32 @@ namespace frame
 		return id;
 	}
 
-	static void event_connect(socket_server* poller, io_event* ev, socket* s, errno_type err, size_t sz)
+	static void event_connect(void* data, event_head* head, size_t sz, errno_type err)
 	{
+		socket* s = (socket*)data;
+		io_event* ev = (io_event*)head;
+		socket_server& io = s->io;
+
 		s->type = SOCKET_TYPE_CONNECTED;
 
-		ev_connect* ev_logic = new ev_connect;
+		logic_connect* ev_logic = new logic_connect;
 		ev_logic->id = s->id;
-		if (poller->send(s->logic, PTYPE_SOCKET, 0, ev_logic, sizeof(*ev_logic)))
+		if (io.send(s->logic, ev_logic))
 		{
-			delete ev_logic;
-			poller->closesocket(s);
+			io.force_close(s);
 		}// todo 
 
 		if (err == NO_ERROR)
 		{
-			poller->ev_recv_start(s);
+			io.ev_recv_start(s);
 		}
 		else
 			;// todo: close socket;
 	}
 
-	int socket_server::start_connet(int logic,const char * host, int port, const socket_opt& opt, errno_type& err)
+	int socket_server::start_connet(int logic, const char * host, int port, const socket_opt& opt, errno_type& err)
 	{
 		SetLastError(0);
-		LPFN_CONNECTEX ConnectEx = NULL;
-		GUID GuidConnectEx = WSAID_CONNECTEX;
 
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (fd == INVALID_SOCKET)
@@ -295,7 +273,7 @@ namespace frame
 		localaddr.sin_port = htons(port);
 
 		int id = reserve_id();
-		socket * s = new_fd(id, fd, opt,true);
+		socket * s = new_fd(id, logic, fd, opt, true);
 		if (!s)
 		{
 			err = GetLastError();
@@ -303,15 +281,9 @@ namespace frame
 		}
 		s->type = SOCKET_TYPE_CONNECTING;
 		s->op[socket_ev_read].call = event_connect;
-		
+
 		DWORD bytes = 0;
-		if (WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &GuidConnectEx, sizeof(GuidConnectEx), &ConnectEx, sizeof(ConnectEx), &bytes, NULL, NULL) != 0)
-		{
-			err = GetLastError();
-			s->reset();
-			return 0;
-		}
-		BOOL result = ConnectEx(fd, (SOCKADDR*)&localaddr, sizeof(localaddr), 0, 0, &bytes, &s->op[ioevent_read].op);
+		BOOL result = ConnectEx(fd, (SOCKADDR*)&localaddr, sizeof(localaddr), 0, 0, &bytes, &s->op[socket_ev_read].op);
 		if (!result)
 		{
 			err = GetLastError();
@@ -325,22 +297,25 @@ namespace frame
 		return id;
 	}
 
-	static void on_ev_send(socket_server* poller, io_event* ev, socket* s, errno_type err, size_t sz)
+	static void on_ev_send(void* data, event_head* head, size_t sz, errno_type err)
 	{
-		if (err!=NO_ERROR)
+		socket* s = (socket*)data;
+		io_event* ev = (io_event*)head;
+		socket_server& io = s->io;
+		if (err != NO_ERROR)
 		{
-			ev_socketerr* ev_logic = new ev_socketerr;
+			logic_socketerr* ev_logic = new logic_socketerr;
 			ev_logic->id = s->id;
-			iocp* p = grub_poller(s->logic);
-			if (!p || !p->post(0, ev_logic, 0, err))
+			ev_logic->err = err;
+			if (io.send(s->logic, ev_logic))
 			{
-				delete ev_logic;
-			}// todo 
+				io.force_close(s);
+			}
 		}
 		else
 		{
 			s->wb.read_ok(sz);
-			poller->ev_send_start(s);
+			io.ev_send_start(s);
 		}
 	}
 
@@ -352,11 +327,15 @@ namespace frame
 
 		DWORD bytes_transferred = 0;
 		DWORD send_flags = 0;// flags;
+
 		io_event* ev = &s->op[socket_ev_write];
-		ev->wsa.buf = ptr;
-		ev->wsa.len = sz;
 		ev->call = on_ev_send;
-		if (WSASend(s->fd, &ev->wsa, 1, &bytes_transferred, send_flags, &ev->op, 0)!=0)
+
+		WSABUF wsa;
+		wsa.buf = ptr;
+		wsa.len = sz;
+
+		if (WSASend(s->fd, &wsa, 1, &bytes_transferred, send_flags, &ev->op, 0) != 0)
 		{
 			errno_type err = GetLastError();
 			if (err != WSA_IO_PENDING)
@@ -368,17 +347,27 @@ namespace frame
 		return NO_ERROR;
 	}
 
-	static void on_ev_recv(socket_server* poller, io_event* ev, socket* s, errno_type err, size_t sz)
+	static void on_ev_recv(void* data, event_head* head, size_t sz, errno_type err)
 	{
+		socket* s = (socket*)data;
+		io_event* ev = (io_event*)head;
+		socket_server& io = s->io;
+
 		s->rb.write_ok(sz);
-		s->opt.recv(s,err);
-		if (err!=NO_ERROR)
+		s->opt.recv(s->id, err);
+		if (err != NO_ERROR)
 		{
-			// todo: close
+			logic_socketerr* ev_logic = new logic_socketerr;
+			ev_logic->id = s->logic;
+			ev_logic->err = err;
+			if (io.send(s->logic, ev_logic))
+			{
+				io.force_close(s);
+			}
 		}
 		else
 		{
-			poller->ev_start_recv(s);
+			io.ev_recv_start(s);
 		}
 	}
 
@@ -391,13 +380,15 @@ namespace frame
 
 		io_event * ev = &s->op[socket_ev_read];
 		ev->call = on_ev_recv;
-		ev->wsa.len = sz;
-		ev->wsa.buf = ptr;
 
-   		DWORD bytes_transferred = 0;
+		WSABUF wsa;
+		wsa.len = sz;
+		wsa.buf = ptr;
+
+		DWORD bytes_transferred = 0;
 		DWORD read_flags = 0;// flags;
 		SetLastError(0);
-		if (WSARecv(s->fd, &ev->wsa, 1, &bytes_transferred, &read_flags, &ev->op, 0)!=0)
+		if (WSARecv(s->fd, &wsa, 1, &bytes_transferred, &read_flags, &ev->op, 0) != 0)
 		{
 			errno_type err = GetLastError();
 			if (err != WSA_IO_PENDING)
@@ -409,7 +400,7 @@ namespace frame
 		return NO_ERROR;
 	}
 
-	errno_type socket_server::start_send(int id, char* data, size_t sz )
+	errno_type socket_server::start_send(int id, char* data, size_t sz)
 	{
 		socket * s = getsocket(id);
 		s->wb.write(data, sz);
@@ -418,12 +409,12 @@ namespace frame
 
 	socket* socket_server::getsocket(int id)
 	{
-		socket * s = &slot[HASH_ID(id)];
+		socket * s = slot[HASH_ID(id)];
 		if (s->type != SOCKET_TYPE_INVALID&&s->id == id)
 			return s;
 		return NULL;
 	}
-	
+
 	void socket_server::force_close(socket * s)
 	{
 		shutdown(s->fd, SD_BOTH);
@@ -438,24 +429,46 @@ namespace frame
 		s->reset();
 	}
 
-	void socket_server::on_msg(logic_msg* msg,size_t sz,errno_type err)
+	/*	int socket_server::post_close(int id)
 	{
-		switch (msg->type)
-		{
-		case PTYPE_SYSTEM:
-		{
-			io_event * ev = (io_event*)msg->data;
-			ev->call(this, ev, ev->s, err, sz);
-		}
-			break;
-		default:
-			assert(false); 
-		}
+	return 0;
+	}
+	*/
+
+	int start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
+	{
+
+	}
+	int start_connet(int logic, const char * addr, int port, const socket_opt& opt, errno_type& e)
+	{
+
+	}
+	errno_type start_send(int fd, char* data, size_t sz)
+	{
+
+	}
+	errno_type start_close(int fd)
+	{
+
 	}
 
-/*	int socket_server::post_close(int id)
+	static iocp io;
+	static socket_server server(io);
+
+	int start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
 	{
-		return 0;
+		return server.start_listen(logic, addr, port, backlog, opt, e);
 	}
-*/
+	int start_connet(int logic, const char * addr, int port, const socket_opt& opt, errno_type& e)
+	{
+		return server.start_connet(logic, addr, port, opt, e);
+	}
+	errno_type start_send(int fd, char* data, size_t sz)
+	{
+		return server.start_send(fd, data, sz);
+	}
+	errno_type start_close(int fd)
+	{
+		return server.start_close(fd);
+	}
 }

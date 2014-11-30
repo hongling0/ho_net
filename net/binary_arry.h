@@ -1,11 +1,5 @@
 #pragma once
-
-//#include <Windows.h>
-//#include <winsock.h>
-
-#include <string>
-#include "socketserver.h"
-#include "logic.h"
+#include <memory>
 
 
 namespace frame
@@ -18,7 +12,7 @@ namespace frame
 			void* val;
 		};
 	public:
-		binary_arry(int sz)
+		binary_arry(int sz=0)
 		{
 			slot = NULL;
 			slot_sz = 0;
@@ -36,7 +30,7 @@ namespace frame
 				grown();
 			int p = 0;
 			for (p = 0; p < slot_sz&&slot[p]->key < key; p++);
-			for (size_t i = slot_sz; i > p; i--)
+			for (int i = slot_sz; i > p; i--)
 			{
 				*(slot[i + 1]) = *(slot[i]);
 			}
@@ -64,12 +58,12 @@ namespace frame
 					return binary_search(arr, mid + 1, high, key);
 			}
 		}
-		void grown(int sz=0)
+		void grown()
 		{
 			int new_max = slot_max ? 2 * slot_max : slot_def;
 			item** newslot = (item**)malloc(sizeof(item*)*new_max);
 			memset(newslot, 0, sizeof(item*)*new_max);
-			for (size_t i = 0; i < slot_sz; i++)
+			for (int i = 0; i < slot_sz; i++)
 			{
 				*(newslot[i]) = *(slot[i]);
 			}
@@ -82,5 +76,5 @@ namespace frame
 		item** slot;
 		int slot_sz;
 		int slot_max;
-	}
+	};
 }

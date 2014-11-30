@@ -1,13 +1,83 @@
 #pragma once
 
-//#include <Windows.h>
-//#include <winsock.h>
-
 #include "typedef.h"
 #include "buffer.h"
 
 
-
 namespace frame
 {
+	struct event_head;
+	typedef void(*event_call)(void*, event_head*, size_t, errno_type);
+	struct event_head
+	{
+		OVERLAPPED op;
+		event_call call;
+	};
+
+	namespace detail
+	{
+		struct msg_id_alloc
+		{
+			static int alloc() { return id++; }
+		private:
+			static int id;
+		};
+		int msg_id_alloc::id = 0;
+	}
+
+
+	template<class T>
+	struct msg_id
+	{
+		typedef T type;
+		static const int id;
+	};
+	template<class T> int msg_id<T>::id = detail::msg_id_alloc::alloc();
+
+	struct logic_msg
+	{
+		logic_msg(int id) :msg_id(id){}
+		const int msg_id;
+	};
+
+	struct event_logic : public event_head
+	{
+		event_logic(){ call = logic_call; }
+		logic_msg * msg;
+	protected:
+		static void logic_call(void* data, event_head* head, size_t s, errno_type e);
+	};
+
+	template<class T>
+	struct logic_template : public logic_msg
+	{
+		logic_template() :logic_msg(typename msg_id<T>::msg_id){}
+	};
+
+#define LOGIC_MSG(n) struct n : public logic_template<n>
+
+	LOGIC_MSG(logic_accept)
+	{
+		int id;
+		int listenid;
+		errno_type err;
+	};
+
+	LOGIC_MSG(logic_connect)
+	{
+		int id;
+		errno_type err;
+	};
+
+	LOGIC_MSG(logic_recv)
+	{
+		int id;
+		ring_buffer* buffer;
+	};
+
+	LOGIC_MSG(logic_socketerr)
+	{
+		int id;
+		errno_type err;
+	};
 }

@@ -4,6 +4,15 @@
 
 namespace frame
 {
+
+	void event_logic::logic_call(void* data, event_head* head, size_t s, errno_type e)
+	{
+		logic* lgc = (logic*)data;
+		event_logic* ev = (event_logic*)head;
+		lgc->on_logic(ev->msg);
+	}
+
+
 	struct msg_handle_store
 	{
 		size_t slot_sz;

@@ -6,6 +6,7 @@
 #include "typedef.h"
 #include "buffer.h"
 #include "logic.h"
+#include "socketinterface.h"
 
 
 namespace frame
@@ -30,41 +31,18 @@ namespace frame
 		socket_ev_max,
 	};
 
-	class socket;
-	class socket_server;
-
 	struct io_event : public event_head
 	{
 		void * u;
-		WSABUF wsa;
 		char buf[2*(sizeof(sockaddr_in) + 16)];
 		atomic_type ready;
 	};
 
-	typedef bool(*protocol_recv)(socket* s,errno_type e);
-	typedef bool(*protocol_accept)(socket* s, socket* n, errno_type e);
-	typedef bool(*protocol_connect)(socket* s, errno_type e);
-
-	struct socket_opt
-	{
-		protocol_recv recv;
-		union
-		{
-			protocol_accept accept;
-			protocol_connect connect;
-		};
-	};
-
-	struct message
-	{
-		uint8_t type;
-		void* data;
-	};
-
+	class socket_server;
 	class socket
 	{
 	public:
-		socket()
+		socket(socket_server& _io) :io(_io)
 		{
 			fd = INVALID_SOCKET;
 			reset();
@@ -90,6 +68,7 @@ namespace frame
 		ring_buffer wb;
 		ring_buffer rb;
 		socket_opt opt;
+		socket_server& io;
 	};
 
 }

@@ -18,6 +18,7 @@ namespace frame
 		{
 			memset(this, 0, sizeof(*this));
 			init(4096);
+			next = NULL;
 		}
 		~ring_buffer()
 		{
@@ -112,7 +113,7 @@ namespace frame
 		}
 		bool read_ok(size_t sz)
 		{
-			assert(sz <= (_write - _read));
+			assert((int)sz <= (_write - _read));
 			_read += sz;
 			return true;
 		}
@@ -121,10 +122,20 @@ namespace frame
 			_read = 0;
 			_write = 0;
 		}
+		ring_buffer* next;
 	private:
 		char * buffer;
 		size_t capacity;
 		atomic_type _read;
 		atomic_type _write;
+	};
+
+	struct buffer_head
+	{
+		buffer_head()
+		{
+			head = NULL;
+		}
+		ring_buffer* head;
 	};
 }

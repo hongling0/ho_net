@@ -1,6 +1,5 @@
 #include "typedef.h"
 #include "lock.h"
-#include "lock.h"
 #include "logic.h"
 #include "poller.h"
 
@@ -10,6 +9,12 @@
 using namespace sys;
 namespace frame
 {
+	static void THREAD_START_ROUTINE(LPVOID lpThreadParameter)
+	{
+		iocp* p = (iocp*)lpThreadParameter;
+		p->run();
+	}
+
 	iocp::iocp()
 	{
 		fd = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
@@ -38,11 +43,7 @@ namespace frame
 			thr = 0;
 		}
 	}
-	static void THREAD_START_ROUTINE(LPVOID lpThreadParameter)
-	{
-		iocp* p = (iocp*)lpThreadParameter;
-		p->run();
-	}
+
 	void iocp::run()
 	{
 		for (;;)
@@ -68,14 +69,7 @@ namespace frame
 			}
 			else if (op)
 			{
-				event_head* head = (event_head*)completion_key;
-				if (head->type == PTYPE_SOCKET)
-				{
-					io_event * ev = (io_event*)op;
-					socket* so = (socket*)
-						ev->call()
-				}
-				logic_msg* ev = (logic_msg*)op;
+				event_head* ev = (event_head*)completion_key;
 				ev->call ((void*)completion_key, ev, bytes, last_error);
 			}
 		}
@@ -84,11 +78,11 @@ namespace frame
 	{
 		if (thr = 0)
 			return false;
-		return PostQueuedCompletionStatus(fd, bytes, (ULONG_PTR)context, &ev->op);
+		return PostQueuedCompletionStatus(fd, bytes, (ULONG_PTR)context, &ev->op)==TRUE;
 	}
 	bool iocp::append_socket(socket_type s, void* context)
 	{
-		return CreateIoCompletionPort((HANDLE)s, fd, (ULONG_PTR)context, 0);
+		return CreateIoCompletionPort((HANDLE)s, fd, (ULONG_PTR)context, 0)!=0;
 	}
 
 }

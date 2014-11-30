@@ -14,12 +14,15 @@
     <ClInclude Include="atomic.h" />
     <ClInclude Include="binary_arry.h" />
     <ClInclude Include="buffer.h" />
+    <ClInclude Include="connector.h" />
     <ClInclude Include="event.h" />
+    <ClInclude Include="listener.cpp" />
     <ClInclude Include="listener.h" />
     <ClInclude Include="logic.h" />
     <ClInclude Include="lock.h" />
     <ClInclude Include="logic_store.h" />
     <ClInclude Include="socket.h" />
+    <ClInclude Include="socketinterface.h" />
     <ClInclude Include="socketserver.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>

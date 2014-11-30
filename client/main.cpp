@@ -1,11 +1,7 @@
 #include <string>
 
-#include "iocp.h"
+#include "connector.h"
 
-#define MSG "hello server\n"
-using namespace net;
-
-iocp poller;
 
 bool on_connect(net::socket * s,errno_type e)
 {
@@ -34,16 +30,11 @@ bool on_recv(net::socket * s, errno_type e)
 
 int main()
 {
+	frame::iocp io;
+	io.start_thread(1);
 
-	poller.start_run(4);
-
-	errno_type err;
-	socket_opt opt;
-	opt.recv = on_recv;
-	opt.connect = on_connect;
-
-	poller.start_connet("127.0.0.1", 10000, opt,err);
-	printf("%s\n", errno_str(err));
+	frame::connector c(io, "127.0.0.1", 10000);
+	c.start();
 
 	while (1) Sleep(100);
 	return 1;

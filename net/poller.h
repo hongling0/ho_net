@@ -1,7 +1,7 @@
-#include "typedef.h"
-#include "lock.h"
+#pragma once
 
-#include "socket.h"
+#include "typedef.h"
+#include "event.h"
 
 namespace frame
 {
