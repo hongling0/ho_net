@@ -4,6 +4,7 @@
 #include "lock.h"
 #include "poller.h"
 #include "binary_arry.h"
+#include "errmsg.h"
 
 namespace frame
 {

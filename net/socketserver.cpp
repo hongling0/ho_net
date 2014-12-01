@@ -1,7 +1,15 @@
+
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include "socketserver.h"
 #include "socket.h"
 #include "atomic.h"
 #include "poller.h"
+
+
+
+#define HASH_ID(id) (((unsigned)id) % MAX_SOCKET)
+
 
 namespace frame
 {
@@ -18,8 +26,6 @@ namespace frame
 			WSACleanup();
 		}
 	}  autoswitch;
-
-#define HASH_ID(id) (((unsigned)id) % MAX_SOCKET)
 
 	socket_server::socket_server(iocp& e) :logic(e)
 	{
@@ -41,6 +47,8 @@ namespace frame
 		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx), &ConnectEx, sizeof(ConnectEx), &bytes, NULL, NULL);
 		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidDisconnectEx, sizeof(guidDisconnectEx), &DisconnectEx, sizeof(DisconnectEx), &bytes, NULL, NULL);
 		WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidWSARecvMsg, sizeof(guidWSARecvMsg), &WSARecvMsg, sizeof(WSARecvMsg), &bytes, NULL, NULL);
+
+		closesocket(fd);
 
 		for (int i = 0; i < MAX_SOCKET; i++)
 		{
@@ -174,7 +182,7 @@ namespace frame
 		SetLastError(0);
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_IP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (fd == INVALID_SOCKET) {
-			return GetLastError();
+			return WSAGetLastError();
 		}
 		socket* news = new_fd(reserve_id(), s->logic, fd, s->opt, true);
 		news->type = SOCKET_TYPE_PLISTEN;
@@ -186,7 +194,7 @@ namespace frame
 		setsockopt(news->fd, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&s->fd, sizeof(s->fd));
 		if (!AcceptEx(s->fd, news->fd, ev->buf, 0, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, &bytes, &ev->op))
 		{
-			errno_type err = GetLastError();
+			errno_type err = WSAGetLastError();
 			if (err != WSA_IO_PENDING)
 			{
 				ev->u = NULL;
@@ -203,7 +211,7 @@ namespace frame
 		SOCKET fd = do_listen(addr, port, backlog);
 		if (fd == INVALID_SOCKET)
 		{
-			e = GetLastError();
+			e = WSAGetLastError();
 			return 0;
 		}
 
@@ -211,7 +219,7 @@ namespace frame
 		socket* s = new_fd(id, logic, fd, opt, true);
 		if (!s)
 		{
-			e = GetLastError();
+			e = WSAGetLastError();
 			return 0;
 		}
 		s->type = SOCKET_TYPE_LISTEN;
@@ -254,7 +262,7 @@ namespace frame
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (fd == INVALID_SOCKET)
 		{
-			err = GetLastError();
+			err = WSAGetLastError();
 			return 0;
 		}
 
@@ -265,7 +273,7 @@ namespace frame
 		if (bind(fd, (SOCKADDR*)&localaddr, sizeof(localaddr)) == SOCKET_ERROR)
 		{
 			closesocket(fd);
-			err = GetLastError();
+			err = WSAGetLastError();
 			return 0;
 		}
 
@@ -276,7 +284,7 @@ namespace frame
 		socket * s = new_fd(id, logic, fd, opt, true);
 		if (!s)
 		{
-			err = GetLastError();
+			err = WSAGetLastError();
 			return 0;
 		}
 		s->type = SOCKET_TYPE_CONNECTING;
@@ -286,7 +294,7 @@ namespace frame
 		BOOL result = ConnectEx(fd, (SOCKADDR*)&localaddr, sizeof(localaddr), 0, 0, &bytes, &s->op[socket_ev_read].op);
 		if (!result)
 		{
-			err = GetLastError();
+			err = WSAGetLastError();
 			if (err != WSA_IO_PENDING)
 			{
 				s->reset();
@@ -314,7 +322,7 @@ namespace frame
 		}
 		else
 		{
-			s->wb.read_ok(sz);
+			s->wb.head->read_ok(sz);
 			io.ev_send_start(s);
 		}
 	}
@@ -323,7 +331,7 @@ namespace frame
 	{
 		char* ptr;
 		size_t sz;
-		if (!s->wb.readbuffer(&ptr, &sz))  return false;
+		if (!s->wb.head->readbuffer(&ptr, &sz))  return false;
 
 		DWORD bytes_transferred = 0;
 		DWORD send_flags = 0;// flags;
@@ -337,7 +345,7 @@ namespace frame
 
 		if (WSASend(s->fd, &wsa, 1, &bytes_transferred, send_flags, &ev->op, 0) != 0)
 		{
-			errno_type err = GetLastError();
+			errno_type err = WSAGetLastError();
 			if (err != WSA_IO_PENDING)
 			{
 				s->reset();
@@ -353,8 +361,17 @@ namespace frame
 		io_event* ev = (io_event*)head;
 		socket_server& io = s->io;
 
-		s->rb.write_ok(sz);
-		s->opt.recv(s->id, err);
+		s->rb.tail->write_ok(sz);
+
+		logic_recv* ev_logic = NULL;
+		if (s->opt.recv(s->id, &s->rb, &ev_logic) == false)
+		{
+			//parse error;
+		}
+		if (io.send(s->logic, ev_logic))
+		{
+			io.force_close(s);
+		}
 		if (err != NO_ERROR)
 		{
 			logic_socketerr* ev_logic = new logic_socketerr;
@@ -375,7 +392,7 @@ namespace frame
 	{
 		char* ptr;
 		size_t sz;
-		if (!s->rb.writebuffer(&ptr, &sz))
+		if (!s->rb.head->writebuffer(&ptr, &sz))
 			return false;
 
 		io_event * ev = &s->op[socket_ev_read];
@@ -390,7 +407,7 @@ namespace frame
 		SetLastError(0);
 		if (WSARecv(s->fd, &wsa, 1, &bytes_transferred, &read_flags, &ev->op, 0) != 0)
 		{
-			errno_type err = GetLastError();
+			errno_type err = WSAGetLastError();
 			if (err != WSA_IO_PENDING)
 			{
 				s->reset();
@@ -403,7 +420,7 @@ namespace frame
 	errno_type socket_server::start_send(int id, char* data, size_t sz)
 	{
 		socket * s = getsocket(id);
-		s->wb.write(data, sz);
+		s->wb.head->write(data, sz);
 		return ev_send_start(s);
 	}
 
@@ -429,46 +446,16 @@ namespace frame
 		s->reset();
 	}
 
+	errno_type socket_server::start_close(int fd)
+	{
+		return NULL;
+	}
+
 	/*	int socket_server::post_close(int id)
 	{
 	return 0;
 	}
 	*/
 
-	int start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
-	{
-
-	}
-	int start_connet(int logic, const char * addr, int port, const socket_opt& opt, errno_type& e)
-	{
-
-	}
-	errno_type start_send(int fd, char* data, size_t sz)
-	{
-
-	}
-	errno_type start_close(int fd)
-	{
-
-	}
-
-	static iocp io;
-	static socket_server server(io);
-
-	int start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
-	{
-		return server.start_listen(logic, addr, port, backlog, opt, e);
-	}
-	int start_connet(int logic, const char * addr, int port, const socket_opt& opt, errno_type& e)
-	{
-		return server.start_connet(logic, addr, port, opt, e);
-	}
-	errno_type start_send(int fd, char* data, size_t sz)
-	{
-		return server.start_send(fd, data, sz);
-	}
-	errno_type start_close(int fd)
-	{
-		return server.start_close(fd);
-	}
 }
+

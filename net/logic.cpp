@@ -4,6 +4,7 @@
 
 namespace frame
 {
+	int detail::logic_msg_id_alloc::id = 100000000;
 
 	void event_logic::logic_call(void* data, event_head* head, size_t s, errno_type e)
 	{
@@ -48,6 +49,14 @@ namespace frame
 		}
 		else
 			assert(false);
+	}
+
+	int logic::send(int destination, logic_msg* msg)
+	{
+		event_logic* lgc = new event_logic;
+		lgc->msg = msg;
+		io.post(this, lgc, 0, 0);
+		return 0;
 	}
 
 }

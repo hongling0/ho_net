@@ -3,9 +3,6 @@
 #include "logic.h"
 #include "poller.h"
 
-
-#define MAX_POLLER 256
-
 using namespace sys;
 namespace frame
 {
@@ -54,12 +51,10 @@ namespace frame
 			SetLastError(0);
 			BOOL ret = GetQueuedCompletionStatus(fd, &bytes, &completion_key, &op, 500);
 			DWORD last_error = ::GetLastError();
-			if (!ret)
+			if (ret!=TRUE)
 			{
 				if (last_error == WAIT_TIMEOUT)
 					continue;
-				else
-					assert(false);
 			}
 			if (op == &quit)
 			{
@@ -69,8 +64,13 @@ namespace frame
 			}
 			else if (op)
 			{
-				event_head* ev = (event_head*)completion_key;
+				event_head* ev = (event_head*)op;
 				ev->call ((void*)completion_key, ev, bytes, last_error);
+			}
+			else
+			{
+				fprintf(stderr, "GetQueuedCompletionStatus %s\n", errno_str(last_error));
+				assert(false);
 			}
 		}
 	}

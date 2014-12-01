@@ -14,6 +14,7 @@ namespace frame
 		void start_thread(uint8_t n);
 		void stop_thread();
 		void run();
+		void wait();
 		bool post(void* context, event_head* ev, size_t bytes, errno_type e);
 		bool append_socket(socket_type s, void* context);
 	protected:

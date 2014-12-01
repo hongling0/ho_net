@@ -65,8 +65,8 @@ namespace frame
 		atomic_type type;
 		io_event op[socket_ev_max];
 		atomic_type pending;
-		ring_buffer wb;
-		ring_buffer rb;
+		buffer_head wb;
+		buffer_head  rb;
 		socket_opt opt;
 		socket_server& io;
 	};

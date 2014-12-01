@@ -24,11 +24,11 @@ namespace frame
 
 	listener::listener(iocp& e, const char* _ip, int _port) :logic(e), ip(_ip), port(_port), socket(0)
 	{
-		addhandler(msg_id<logic_accept>::id, &msg_accept);
-		addhandler(msg_id<logic_recv>::id, &msg_recv);
-		addhandler(msg_id<logic_socketerr>::id, &msg_err);
+		addhandler(logic_msg_id<logic_accept>::id, &msg_accept);
+		addhandler(logic_msg_id<logic_recv>::id, &msg_recv);
+		addhandler(logic_msg_id<logic_socketerr>::id, &msg_err);
 	}
-	bool listener::start(protocol_call call = default_protocol)
+	bool listener::start(protocol_call call/* = default_protocol*/)
 	{
 		if (socket) return true;
 

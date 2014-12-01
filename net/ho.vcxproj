@@ -15,23 +15,27 @@
     <ClInclude Include="binary_arry.h" />
     <ClInclude Include="buffer.h" />
     <ClInclude Include="connector.h" />
+    <ClInclude Include="errmsg.h" />
     <ClInclude Include="event.h" />
-    <ClInclude Include="listener.cpp" />
     <ClInclude Include="listener.h" />
-    <ClInclude Include="logic.h" />
     <ClInclude Include="lock.h" />
+    <ClInclude Include="logic.h" />
     <ClInclude Include="logic_store.h" />
+    <ClInclude Include="poller.h" />
     <ClInclude Include="socket.h" />
     <ClInclude Include="socketinterface.h" />
     <ClInclude Include="socketserver.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="connector.cpp" />
     <ClCompile Include="errmsg.cpp" />
+    <ClCompile Include="listener.cpp" />
     <ClCompile Include="logic.cpp" />
     <ClCompile Include="logic_store.cpp" />
     <ClCompile Include="poller.cpp" />
-    <ClCompile Include="poller.h" />
+    <ClCompile Include="socket.cpp" />
+    <ClCompile Include="socketinterface.cpp" />
     <ClCompile Include="socketserver.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

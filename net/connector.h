@@ -1,13 +1,8 @@
 #pragma once
 
-//#include <Windows.h>
-//#include <winsock.h>
-
 #include <string>
 #include "socketinterface.h"
 #include "logic.h"
-
-
 
 namespace frame
 {

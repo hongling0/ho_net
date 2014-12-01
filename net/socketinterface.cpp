@@ -1,0 +1,42 @@
+#include "socketserver.h"
+
+namespace frame
+{
+
+	static iocp io;
+	static socket_server * s_server;
+
+	int start_socketserver(int thr)
+	{
+		s_server = new socket_server(io);
+		io.start_thread(thr);
+		return 0;
+	}
+	int stop_socketserver()
+	{
+		io.stop_thread();
+		return 0;
+	}
+
+	int start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
+	{
+		socket_server& server = *s_server;
+		return server.start_listen(logic, addr, port, backlog, opt, e);
+	}
+	int start_connet(int logic, const char * addr, int port, const socket_opt& opt, errno_type& e)
+	{
+		socket_server& server = *s_server;
+		return server.start_connet(logic, addr, port, opt, e);
+	}
+	errno_type start_send(int fd, char* data, size_t sz)
+	{
+		socket_server& server = *s_server;
+		return server.start_send(fd, data, sz);
+	}
+	errno_type start_close(int fd)
+	{
+		socket_server& server = *s_server;
+		return server.start_close(fd);
+	}
+}
+

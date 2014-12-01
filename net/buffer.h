@@ -135,7 +135,25 @@ namespace frame
 		buffer_head()
 		{
 			head = NULL;
+			tail = NULL;
+		}
+		~buffer_head()
+		{
+			clean();
+		}
+		void clean()
+		{
+			ring_buffer* b = head;
+			while (b)
+			{
+				ring_buffer* n = b->next;
+				delete b;
+				b = n;
+			}
+			head = NULL;
+			tail = NULL;
 		}
 		ring_buffer* head;
+		ring_buffer* tail;
 	};
 }

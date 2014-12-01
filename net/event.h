@@ -16,27 +16,26 @@ namespace frame
 
 	namespace detail
 	{
-		struct msg_id_alloc
+		struct logic_msg_id_alloc
 		{
 			static int alloc() { return id++; }
 		private:
 			static int id;
 		};
-		int msg_id_alloc::id = 0;
 	}
 
-
-	template<class T>
-	struct msg_id
+	template<typename T>
+	struct logic_msg_id
 	{
 		typedef T type;
 		static const int id;
 	};
-	template<class T> int msg_id<T>::id = detail::msg_id_alloc::alloc();
+	template<typename T> const int logic_msg_id<T>::id = detail::logic_msg_id_alloc::alloc();
 
 	struct logic_msg
 	{
 		logic_msg(int id) :msg_id(id){}
+		virtual ~logic_msg(){}
 		const int msg_id;
 	};
 
@@ -51,7 +50,8 @@ namespace frame
 	template<class T>
 	struct logic_template : public logic_msg
 	{
-		logic_template() :logic_msg(typename msg_id<T>::msg_id){}
+		typedef logic_msg_id<T> msg_id_type;
+		logic_template() :logic_msg(msg_id_type::id){}
 	};
 
 #define LOGIC_MSG(n) struct n : public logic_template<n>
