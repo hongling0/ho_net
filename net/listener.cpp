@@ -36,6 +36,7 @@ namespace frame
 		opt.recv = call;
 
 		errno_type err;
+		fprintf(stdout, "%d start_listen %s:%d\n", logic_id, ip.c_str(), port);
 		socket = start_listen(logic_id, ip.c_str(), port, 0, opt, err);
 		if (!err) return true;
 
@@ -50,7 +51,7 @@ namespace frame
 
 	void listener::on_accept(int listenid, int newid)
 	{
-
+		fprintf(stdout, "%d logic %d accept %d\n", logic_id, listenid,newid);
 	}
 	void listener::on_recv(int id, ring_buffer*buffer)
 	{

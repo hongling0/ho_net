@@ -39,10 +39,7 @@ namespace frame
 		void socket_error(socket* s, errno_type e);
 		bool post2logic(int logic, event_head* ev, errno_type err);
 		void on_msg(logic_msg* msg);
-	private:
-		atomic_type alloc_id;
-		socket* slot[MAX_SOCKET];
-
+	public:
 		LPFN_TRANSMITFILE						TransmitFile;
 		LPFN_ACCEPTEX								AcceptEx;
 		LPFN_GETACCEPTEXSOCKADDRS	GetAcceptExSockaddrs;
@@ -50,6 +47,9 @@ namespace frame
 		LPFN_CONNECTEX							ConnectEx;
 		LPFN_DISCONNECTEX						DisconnectEx;
 		LPFN_WSARECVMSG						WSARecvMsg;
+	private:
+		atomic_type alloc_id;
+		socket* slot[MAX_SOCKET];
 	};
 
 

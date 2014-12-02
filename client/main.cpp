@@ -10,7 +10,7 @@ int main()
 	frame::iocp io;
 	io.start_thread(1);
 
-	frame::connector c(io, "127.0.0.1", 10000);
+	frame::connector c(io, "127.0.0.1", 1000);
 	c.start();
 
 	while (1) Sleep(100);

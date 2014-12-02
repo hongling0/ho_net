@@ -37,25 +37,34 @@ namespace frame
 
 	void logic::addhandler(int msg_id, msg_handle h)
 	{
-		array.insert(msg_id, &h);
+		array.insert(msg_id, h);
 	}
 
 	void logic::on_logic(logic_msg* msg)
 	{
-		msg_handle* h = (msg_handle*)array.find(msg->msg_id);
+		msg_handle h = array.find(msg->msg_id);
 		if (h)
 		{
-			(*h)(this, msg);
+			(h)(this, msg);
 		}
 		else
 			assert(false);
 	}
 
-	int logic::send(int destination, logic_msg* msg)
+	int logic::post(int destination, logic_msg* msg)
 	{
 		event_logic* lgc = new event_logic;
 		lgc->msg = msg;
-		io.post(this, lgc, 0, 0);
+		logic* recv = grub_logic(destination);
+		if (!recv)
+		{
+			delete lgc;
+			assert(false);
+		}
+		else
+		{
+			io.post(recv, lgc, 0, 0);
+		}
 		return 0;
 	}
 

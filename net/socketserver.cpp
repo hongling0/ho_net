@@ -19,7 +19,7 @@ namespace frame
 		startnetwork()
 		{
 			WSADATA data;
-			WSAStartup(MAKELONG(1, 2), &data);
+			WSAStartup((WORD)MAKELONG(1, 2), &data);
 		}
 		~startnetwork()
 		{
@@ -29,6 +29,7 @@ namespace frame
 
 	socket_server::socket_server(iocp& e) :logic(e)
 	{
+		alloc_id = 0;
 		GUID guidTransmitFile = WSAID_TRANSMITFILE;
 		GUID guidAcceptEx = WSAID_ACCEPTEX;
 		GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
@@ -154,8 +155,8 @@ namespace frame
 		int locallen = sizeof(SOCKADDR_IN);
 		int remotelen = sizeof(SOCKADDR_IN);
 
-		GetAcceptExSockaddrs(ev->buf, sizeof(ev->buf) - 2 * (sizeof(SOCKADDR_IN) + 16), sizeof(sockaddr_in) + 16,
-			sizeof(sockaddr_in) + 16, (sockaddr**)&local_addr, &locallen, (sockaddr**)&remote_addr, &remotelen);
+		io.GetAcceptExSockaddrs(ev->buf, sizeof(ev->buf) - 2 * (sizeof(SOCKADDR_IN) + 16), sizeof(SOCKADDR_IN) + 16,
+			sizeof(SOCKADDR_IN) + 16, (SOCKADDR**)&local_addr, &locallen, (SOCKADDR**)&remote_addr, &remotelen);
 
 		printf("remote[%s:%d]->local[%s:%d]\n", inet_ntoa(local_addr->sin_addr),
 			(int)ntohs(local_addr->sin_port), inet_ntoa(remote_addr->sin_addr), (int)ntohs(remote_addr->sin_port));
@@ -168,7 +169,7 @@ namespace frame
 		ev_logic->listenid = s->id;
 		ev_logic->err = err;
 
-		if (io.send(s->logic, ev_logic))
+		if (io.post(s->logic, ev_logic))
 		{
 			io.force_close(s);
 		}
@@ -242,7 +243,8 @@ namespace frame
 
 		logic_connect* ev_logic = new logic_connect;
 		ev_logic->id = s->id;
-		if (io.send(s->logic, ev_logic))
+		ev_logic->err = err;
+		if (io.post(s->logic, ev_logic))
 		{
 			io.force_close(s);
 		}// todo 
@@ -315,7 +317,7 @@ namespace frame
 			logic_socketerr* ev_logic = new logic_socketerr;
 			ev_logic->id = s->id;
 			ev_logic->err = err;
-			if (io.send(s->logic, ev_logic))
+			if (io.post(s->logic, ev_logic))
 			{
 				io.force_close(s);
 			}
@@ -368,7 +370,7 @@ namespace frame
 		{
 			//parse error;
 		}
-		if (io.send(s->logic, ev_logic))
+		if (io.post(s->logic, ev_logic))
 		{
 			io.force_close(s);
 		}
@@ -377,7 +379,7 @@ namespace frame
 			logic_socketerr* ev_logic = new logic_socketerr;
 			ev_logic->id = s->logic;
 			ev_logic->err = err;
-			if (io.send(s->logic, ev_logic))
+			if (io.post(s->logic, ev_logic))
 			{
 				io.force_close(s);
 			}
@@ -392,6 +394,10 @@ namespace frame
 	{
 		char* ptr;
 		size_t sz;
+
+		ring_buffer* buffer = new ring_buffer;
+		buffer->next = s->rb.head;
+		s->rb.head = buffer;
 		if (!s->rb.head->writebuffer(&ptr, &sz))
 			return false;
 
@@ -420,6 +426,7 @@ namespace frame
 	errno_type socket_server::start_send(int id, char* data, size_t sz)
 	{
 		socket * s = getsocket(id);
+		ring_buffer* b = new ring_buffer;
 		s->wb.head->write(data, sz);
 		return ev_send_start(s);
 	}

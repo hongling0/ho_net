@@ -2,6 +2,7 @@
 
 
 #include "typedef.h"
+#include "atomic.h"
 
 namespace sys
 {
@@ -21,6 +22,24 @@ namespace sys
 		}
 	private:
 		RTL_CRITICAL_SECTION cs;
+	};
+
+	struct spinlock
+	{
+		spinlock()
+		{
+			_lock = 0;
+		}
+		void lock()
+		{
+
+		}
+		void unlock()
+		{
+
+		}
+	private:
+		atomic_type _lock;
 	};
 
 	struct rwlock

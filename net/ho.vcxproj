@@ -28,6 +28,7 @@
     <ClInclude Include="typedef.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="buffer.cpp" />
     <ClCompile Include="connector.cpp" />
     <ClCompile Include="errmsg.cpp" />
     <ClCompile Include="listener.cpp" />

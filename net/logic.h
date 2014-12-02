@@ -26,7 +26,7 @@ namespace frame
 	{
 	public:
 		logic(iocp& io);
-		int send(int destination,logic_msg* msg);
+		int post(int destination,logic_msg* msg);
 		int handle() const
 		{
 			return logic_id;
@@ -38,7 +38,7 @@ namespace frame
 	protected:
 		iocp& io;
 		const int logic_id;
-		binary_arry array;
+		binary_arry<msg_handle> array;
 	};
 
 

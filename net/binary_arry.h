@@ -4,13 +4,16 @@
 
 namespace frame
 {
+	template<typename V,V null=NULL>
 	class binary_arry
 	{
 		struct item
 		{
 			int key;
-			void* val;
+			V val;
 		};
+	public:
+		static V not_found;
 	public:
 		binary_arry(int sz=0)
 		{
@@ -24,7 +27,7 @@ namespace frame
 		{
 			free(slot);
 		}
-		bool insert(int key,void* val)
+		bool insert(int key, V val)
 		{
 			if (slot_sz + 1 > slot_max)
 				grown();
@@ -39,16 +42,17 @@ namespace frame
 			slot_sz++;
 			return true;
 		}
-		void* find(int i)
+		V& find(int i)
 		{
+			if (slot_sz == 0) return not_found;
 			return binary_search(slot, 0, slot_sz, i);
 		}
 	protected:
-		void* binary_search(item *arr, int low, int high, int key)
+		V& binary_search(item *arr, int low, int high, int key)
 		{
 			int mid = low + (high - low) / 2;
 			if (low>high)
-				return NULL;
+				return not_found;
 			else{
 				if (arr[mid].key == key)
 					return arr[mid].val;
@@ -65,7 +69,8 @@ namespace frame
 			memset(newslot, 0, sizeof(item)*new_max);
 			for (int i = 0; i < slot_sz; i++)
 			{
-				newslot[i] = slot[i];
+				newslot[i].key = slot[i].key;
+				newslot[i].val = slot[i].val;
 			}
 			free(slot);
 			slot_max = new_max;
@@ -77,4 +82,7 @@ namespace frame
 		int slot_sz;
 		int slot_max;
 	};
+
+	template<typename V,V null>
+	V binary_arry<V, null>::not_found=null;
 }
