@@ -32,19 +32,60 @@ namespace sys
 		}
 		void lock()
 		{
-
+			while (InterlockedCompareExchange(&_lock,1, 0));
 		}
 		void unlock()
 		{
-
+			InterlockedExchange(&_lock, 0);
 		}
 	private:
-		atomic_type _lock;
+		LONG _lock;
 	};
 
 	struct rwlock
 	{
 		rwlock()
+		{
+			_read = 0;
+			_write = 0;
+		}
+		void rlock()
+		{
+			for (;;)
+			{
+				while (_write) MemoryBarrier();
+				InterlockedIncrement(&_read);
+				if (_write) {
+					InterlockedDecrement(&_read);
+				}
+				else {
+					break;
+				}
+			}
+		}
+		void wlock()
+		{
+			while (InterlockedCompareExchange(&_write, 1, 0));
+			while (_read) {
+				MemoryBarrier();
+			}
+		}
+		void runlock()
+		{
+			InterlockedDecrement(&_read);
+		}
+		void wunlock()
+		{
+			InterlockedExchange(&_write, 0);
+		}
+	private:
+		LONG _read;
+		LONG _write;
+	};
+
+	struct srwlock
+	{
+		srwlock()
 		{
 			InitializeSRWLock(&l);
 		}
@@ -56,9 +97,13 @@ namespace sys
 		{
 			AcquireSRWLockExclusive(&l);
 		}
-		void unlock()
+		void runlock()
 		{
 			ReleaseSRWLockShared(&l);
+		}
+		void wunlock()
+		{
+			ReleaseSRWLockExclusive(&l);
 		}
 	private:
 		SRWLOCK l;

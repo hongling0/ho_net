@@ -22,6 +22,7 @@
     <ClInclude Include="logic.h" />
     <ClInclude Include="logic_store.h" />
     <ClInclude Include="poller.h" />
+    <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="socket.h" />
     <ClInclude Include="socketinterface.h" />
     <ClInclude Include="socketserver.h" />
@@ -35,6 +36,7 @@
     <ClCompile Include="logic.cpp" />
     <ClCompile Include="logic_store.cpp" />
     <ClCompile Include="poller.cpp" />
+    <ClCompile Include="ring_buffer.cpp" />
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="socketinterface.cpp" />
     <ClCompile Include="socketserver.cpp" />

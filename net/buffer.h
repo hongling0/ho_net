@@ -4,39 +4,24 @@
 
 namespace frame
 {
-	class ring_buffer
-	{
-	public:
-		ring_buffer();
-		ring_buffer(size_t len);
-		~ring_buffer();
-		void init(size_t sz);
-		bool empty() const;
-		bool write(char* data, size_t sz);
-		bool writebuffer(char** ptr, size_t * sz) const;
-		bool write_ok(size_t sz);
-		bool read(char* data, size_t sz);
-		bool readbuffer(char** ptr, size_t* sz) const;
-		bool read_ok(size_t sz);
-		void clean();
-		ring_buffer* next;
-	private:
-		char * buffer;
-		size_t capacity;
-		atomic_type _read;
-		atomic_type _write;
-	};
-
-	class buffer_head
+	template<typename T>
+	class buffer
 	{
 	protected:
-		ring_buffer* head;
-		ring_buffer* tail;
+		uint32_t head;
+		uint32_t tail;
+		T ** queue;
+		T *list;
+		uint32_t cap
 	public:
 		buffer_head()
 		{
+			cap = 8;
+			queue = malloc(cap * sizeof(T *));
+			memset(queue, 0, sizeof(T *) * cap);
 			head = 0;
 			tail = 0;
+			list = 0;
 		}
 		~buffer_head()
 		{
@@ -44,7 +29,7 @@ namespace frame
 		}
 		void clean()
 		{
-			ring_buffer* b = head;
+			T* b = head;
 			while (b)
 			{
 				head = b->next;
@@ -53,7 +38,7 @@ namespace frame
 			tail = 0;
 			head = 0;
 		}
-		void push(ring_buffer* b)
+		void push(T* b)
 		{
 			while (b)	// reverse list hear
 			{
@@ -72,7 +57,7 @@ namespace frame
 		}
 		ring_buffer* get_head()
 		{
-			ring_buffer* b = head;
+			T* b = head;
 			while (b&&b->empty())
 			{
 				head = b->next;
