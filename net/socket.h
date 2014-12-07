@@ -35,6 +35,7 @@ namespace frame
 	{
 		void * u;
 		char buf[2*(sizeof(sockaddr_in) + 16)];
+		ring_buffer* b;
 		atomic_type ready;
 	};
 
@@ -66,7 +67,7 @@ namespace frame
 		io_event op[socket_ev_max];
 		atomic_type pending;
 		buffer_head wb;
-		buffer_head  rb;
+		buffer_head rb;
 		socket_opt opt;
 		socket_server& io;
 	};

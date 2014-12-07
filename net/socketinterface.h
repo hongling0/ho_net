@@ -8,8 +8,7 @@ namespace frame
 
 	static bool default_protocol(int id, buffer_head* bufferlist, logic_recv** out)
 	{
-		ring_buffer * buffer = bufferlist->head;
-		bufferlist->head = new ring_buffer;
+		ring_buffer * buffer = bufferlist->pop_front();
 		logic_recv * logic_ev = new logic_recv;
 		logic_ev->id = id;
 		logic_ev->buffer = buffer;

@@ -55,7 +55,13 @@ namespace frame
 	}
 	void connector::on_recv(int id, ring_buffer*buffer)
 	{
+		char * buf=NULL;
+		size_t len=0;
+		buffer->readbuffer(&buf, &len);
+		std::string msg(buf, len);
+		//fprintf(stdout, "%d on_recv %s\n", id, msg.c_str());
 
+		start_send(id, buf, len);
 	}
 	void connector::on_socketerr(int id, errno_type err)
 	{
@@ -66,6 +72,6 @@ namespace frame
 	{
 		errno_type err = start_send(socket, data, sz);
 		if (err)
-			fprintf(stderr, "connector::send failure [%s]\n", socket, errno_str(err));
+			fprintf(stderr, "connector::send failure [%s]\n", errno_str(err));
 	}
 }

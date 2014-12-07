@@ -37,3 +37,4 @@ client/Debug/
 *.tf1
 *.tfb
 *.orig
+Release/

@@ -324,22 +324,41 @@ namespace frame
 		}
 		else
 		{
-			s->wb.head->read_ok(sz);
+			ring_buffer* b = ev->b;
+			b->read_ok(sz);
+			if (b->empty())
+			{
+				ev->b = NULL;
+				delete b;
+			}
+			InterlockedExchange(&ev->ready, 0);
 			io.ev_send_start(s);
 		}
 	}
 
 	errno_type socket_server::ev_send_start(socket* s)
 	{
+		io_event* ev = &s->op[socket_ev_write];
+		ev->call = on_ev_send;
+		if (InterlockedCompareExchange(&ev->ready, 1, 0)!= 0) return NO_ERROR;
+
 		char* ptr;
 		size_t sz;
-		if (!s->wb.head->readbuffer(&ptr, &sz))  return false;
+		if (!ev->b)
+		{
+			ev->b = s->wb.pop_front();
+		}
+		if (ev->b == NULL)
+		{
+			InterlockedExchange(&ev->ready, 0);
+			return 0;
+		}
+
+		if (!ev->b->readbuffer(&ptr, &sz))
+			assert(false); // can't failure
 
 		DWORD bytes_transferred = 0;
 		DWORD send_flags = 0;// flags;
-
-		io_event* ev = &s->op[socket_ev_write];
-		ev->call = on_ev_send;
 
 		WSABUF wsa;
 		wsa.buf = ptr;
@@ -350,7 +369,7 @@ namespace frame
 			errno_type err = WSAGetLastError();
 			if (err != WSA_IO_PENDING)
 			{
-				s->reset();
+				force_close(s);
 				return err;
 			}
 		}
@@ -363,7 +382,9 @@ namespace frame
 		io_event* ev = (io_event*)head;
 		socket_server& io = s->io;
 
-		s->rb.tail->write_ok(sz);
+		ev->b->write_ok(sz);
+		s->rb.push_back(ev->b);
+		ev->b = NULL;
 
 		logic_recv* ev_logic = NULL;
 		if (s->opt.recv(s->id, &s->rb, &ev_logic) == false)
@@ -374,6 +395,7 @@ namespace frame
 		{
 			io.force_close(s);
 		}
+		InterlockedExchange(&ev->ready, 0);
 		if (err != NO_ERROR)
 		{
 			logic_socketerr* ev_logic = new logic_socketerr;
@@ -392,17 +414,15 @@ namespace frame
 
 	errno_type socket_server::ev_recv_start(socket* s)
 	{
-		char* ptr;
-		size_t sz;
-
-		ring_buffer* buffer = new ring_buffer;
-		buffer->next = s->rb.head;
-		s->rb.head = buffer;
-		if (!s->rb.head->writebuffer(&ptr, &sz))
-			return false;
-
 		io_event * ev = &s->op[socket_ev_read];
 		ev->call = on_ev_recv;
+		if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return NO_ERROR;
+		ev->b = new ring_buffer;
+
+		char* ptr;
+		size_t sz;
+		if (!ev->b->writebuffer(&ptr, &sz))
+			assert(false);
 
 		WSABUF wsa;
 		wsa.len = sz;
@@ -426,8 +446,8 @@ namespace frame
 	errno_type socket_server::start_send(int id, char* data, size_t sz)
 	{
 		socket * s = getsocket(id);
-		ring_buffer* b = new ring_buffer;
-		s->wb.head->write(data, sz);
+		ring_buffer* b = new ring_buffer(data,sz);
+		s->wb.push_back(b);
 		return ev_send_start(s);
 	}
 

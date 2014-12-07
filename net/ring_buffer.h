@@ -9,6 +9,7 @@ namespace frame
 	public:
 		ring_buffer();
 		ring_buffer(size_t len);
+		ring_buffer(char* data,size_t len);
 		~ring_buffer();
 		void init(size_t sz);
 		bool empty() const;
@@ -20,6 +21,7 @@ namespace frame
 		bool read_ok(size_t sz);
 		void clean();
 		ring_buffer* next;
+		ring_buffer* prev;
 	private:
 		char * buffer;
 		size_t capacity;

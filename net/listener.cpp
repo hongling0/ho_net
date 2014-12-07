@@ -55,7 +55,14 @@ namespace frame
 	}
 	void listener::on_recv(int id, ring_buffer*buffer)
 	{
-
+		char * buf=NULL;
+		size_t len=0;
+		if (buffer->readbuffer(&buf, &len))
+		{
+			//std::string msg(buf, len);
+			//fprintf(stdout, "%d on_recv %s\n", id, msg.c_str());
+		}
+		start_send(id, buf, len);
 	}
 	void listener::on_socketerr(int id, errno_type err)
 	{

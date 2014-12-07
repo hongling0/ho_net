@@ -25,7 +25,7 @@ int logic_store::resize()
 	for (int i = 0; i < slot_size; i++)
 	{
 		int handle = slot[i]->handle();
-		int hash = handle ^ ((slot_size * 2) - 1);
+		int hash = handle & ((slot_size * 2) - 1);
 		newlist[hash] = slot[i];
 	}
 	::free(slot);
@@ -47,7 +47,7 @@ int logic_store::reg(logic* lgc)
 			{
 				slot[hash] = lgc;
 				index = handle + 1;
-				lock.unlock();
+				lock.wunlock();
 				return handle;
 			}
 		}
@@ -61,6 +61,6 @@ logic* logic_store::grub(int id)
 	logic* lgc = slot[hash];
 	if (!lgc || lgc->handle() != id)
 		lgc = NULL;
-	lock.unlock();
+	lock.runlock();
 	return lgc;
 }

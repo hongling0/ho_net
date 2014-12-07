@@ -6,7 +6,6 @@ namespace frame
 	{
 		memset(this, 0, sizeof(*this));
 		init(4096);
-		next = NULL;
 	}
 	ring_buffer::ring_buffer(size_t len)
 	{
@@ -15,7 +14,15 @@ namespace frame
 		memset(this, 0, sizeof(*this));
 		if (len > 0)
 			init(sz);
-		next = NULL;
+	}
+	ring_buffer::ring_buffer(char* data, size_t len)
+	{
+		size_t sz = 2;
+		while (sz < len) sz *= 2;
+		memset(this, 0, sizeof(*this));
+		if (len > 0)
+			init(sz);
+		write(data, sz);
 	}
 	ring_buffer::~ring_buffer()
 	{
