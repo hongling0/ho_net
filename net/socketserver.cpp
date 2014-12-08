@@ -134,6 +134,11 @@ namespace frame
 		return POST2LOGIC(logic, id, ev_logic);
 	}
 
+	bool socket_server::report_recv(int logic, int id, logic_recv* ev_logic)
+	{
+		return POST2LOGIC(logic, id, ev_logic);
+	}
+
 	static SOCKET do_listen(const char * host, int port, int backlog)
 	{
 		// only support ipv4
@@ -393,7 +398,7 @@ namespace frame
 			if (InterlockedIncrement(&s->pending) == 2) return io.inner_close(s, 2);
 			int e=io.ev_send_start(s);
 			InterlockedDecrement(&s->pending);
-			if (e!=NO_ERROR)
+			if (e != NO_ERROR && e != FRAME_IO_PENDING && e != FRAME_BUFF_EMPTY)
 				io.inner_close(s, 1);
 		}
 	}
@@ -457,6 +462,7 @@ namespace frame
 				io.report_socketerr(s->logic, s->id, FRAME_IO_PARSEERR);
 				return io.inner_close(s);
 			}
+			io.report_recv(s->logic, s->id, ev_logic);
 			InterlockedExchange(&ev->ready, 0);
 
 			if (InterlockedIncrement(&s->pending) == 2) return io.inner_close(s, 2);
@@ -508,10 +514,10 @@ namespace frame
 			return FRAME_INVALID_SOCKET;
 		ring_buffer* b = new ring_buffer(data,sz);
 		s->wb.push_back(b);
-		int err=ev_send_start(s);
-		if (err)
+		int e=ev_send_start(s);
+		if (e != NO_ERROR && e != FRAME_IO_PENDING && e != FRAME_BUFF_EMPTY)
 			dec_socket(id);
-		return err;
+		return e;
 	}
 
 	socket* socket_server::grub_socket(int id)
@@ -553,7 +559,7 @@ namespace frame
 
 	void socket_server::inner_close(socket *s, unsigned ref)
 	{
-		if (InterlockedAdd(&s->pending, 0 - ref) <= (int)ref)
+		if (InterlockedExchangeAdd(&s->pending, 0 - ref) <= (int)ref)
 			force_close(s);
 	}
 
@@ -562,10 +568,10 @@ namespace frame
 		socket * s = grub_socket(id);
 		if (!s) return FRAME_INVALID_SOCKET;
 		if (s->type != SOCKET_TYPE_PLISTEN
-			|| s->type != SOCKET_TYPE_LISTEN
-			|| s->type != SOCKET_TYPE_CONNECTING
-			|| s->type != SOCKET_TYPE_CONNECTED
-			|| s->type != SOCKET_TYPE_PACCEPT)
+			&& s->type != SOCKET_TYPE_LISTEN
+			&& s->type != SOCKET_TYPE_CONNECTING
+			&& s->type != SOCKET_TYPE_CONNECTED
+			&& s->type != SOCKET_TYPE_PACCEPT)
 			return FRAME_INVALID_SOCKET_TYPE;
 		if (!s->closing)
 		{

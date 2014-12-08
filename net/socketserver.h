@@ -39,6 +39,7 @@ namespace frame
 		bool report_accept(int logic, int id, int listenid, errno_type err);
 		bool report_connect(int logic, int id, errno_type err);
 		bool report_socketerr(int logic, int id, errno_type err);
+		bool report_recv(int logic, int id, logic_recv* ev);
 
 		bool post2logic(int id, int logic, logic_msg* ev, const char* flag, const char* file, int line);
 	protected:
