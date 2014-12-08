@@ -7,6 +7,7 @@
 #if defined(_MSC_VER)
 
 typedef volatile long atomic_type;
+/*
 #define sync_add_and_fetch(l,v) InterlockedAdd(l,v)
 #define sync_dec_and_fetch(l,v) InterlockedAdd(l,v)
 #define sync_bool_compare_and_swap(l,v,c) InterlockedCompareExchange(l,v,c)
@@ -17,7 +18,7 @@ typedef volatile long atomic_type;
 #define atomic_add_fetch(value, add) InterlockedAdd(value, add)
 #define atomic_dec_fetch(value, add) InterlockedAdd(value, 0-add)
 #define memory_barrier()
-
+ */
 #else
 
 typedef volatile uint32_t atomic_type;

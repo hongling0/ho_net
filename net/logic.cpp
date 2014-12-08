@@ -60,12 +60,11 @@ namespace frame
 		{
 			delete lgc;
 			assert(false);
+			return FRAME_POLLER_NOT_FOUND;
 		}
 		else
 		{
-			io.post(recv, lgc, 0, 0);
+			return io.post(recv, lgc, 0, 0);
 		}
-		return 0;
 	}
-
 }

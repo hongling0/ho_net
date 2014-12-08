@@ -54,9 +54,12 @@ namespace frame
 				closesocket(fd);
 			id = 0;
 			fd = INVALID_SOCKET;
-			type = SOCKET_TYPE_INVALID;
+			type = SOCKET_TYPE_RESERVE;
 			memset(&op, 0, sizeof(op));
+			memset(&local, 0, sizeof(local));
+			memset(&remote, 0, sizeof(remote));
 			pending = 0;
+			closing = 0;
 			wb.clean();
 			rb.clean();
 		}
@@ -66,9 +69,12 @@ namespace frame
 		atomic_type type;
 		io_event op[socket_ev_max];
 		atomic_type pending;
+		atomic_type closing;
 		buffer_head wb;
 		buffer_head rb;
 		socket_opt opt;
+		SOCKADDR_IN local;
+		SOCKADDR_IN remote;
 		socket_server& io;
 	};
 

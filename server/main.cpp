@@ -31,7 +31,7 @@ public:
 
 int main()
 {
-	frame::start_socketserver(8);
+	frame::start_socketserver(1);
 
 	frame::iocp io;
 	io.start_thread(1);

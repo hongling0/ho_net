@@ -6,8 +6,8 @@
 #define ERRNO_HASH_SIZE (1<<8)
 #define hash(e) ((e)%ERRNO_HASH_SIZE)
 
-#define LOCK(a)
-#define UNLOCK(a)
+#define LOCK(a)  while (InterlockedCompareExchange(&hash->lock, 1, 0) != 0)
+#define UNLOCK(a) InterlockedExchange(&hash->lock,0)
 
 namespace frame
 {
@@ -45,7 +45,16 @@ namespace frame
 			NULL
 			);
 		if (retval == 0)
-			msg = def ? def : "Unkown error\n";
+		{
+			if (def)
+				msg = def;
+			else
+			{
+				char buf[64];
+				sprintf(buf, "Unkown error %d", e);
+				msg = buf;
+			}
+		}
 		else
 		{
 			msg = lpMsgBuf; // todo: widechar to mulitbyte words  
@@ -68,7 +77,8 @@ namespace frame
 		node = hash->head[h].next;
 		for (; node&&node->err < e; prev = node, node = node->next);
 		if (node&&node->err == e) return node->msg;
-		while (atomic_cmp_set(&hash->lock, 0, 1) != 0);
+
+		LOCK(&hash->lock);
 
 		prev = &hash->head[h];
 		node = prev->next;
@@ -78,7 +88,7 @@ namespace frame
 			if (node->err = e) return node->msg;
 		}
 
-		LOCK(&hash->lock);
+		
 
 		prev = &hash->head[h];
 		node = prev->next;

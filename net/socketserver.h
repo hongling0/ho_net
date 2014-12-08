@@ -31,14 +31,24 @@ namespace frame
 		errno_type ev_recv_start(socket* s);
 
 		void force_close(socket * s);
+		socket* grub_socket(int id);
+		void dec_socket(int id);
+
+		void inner_close(socket *s, unsigned ref=1);
+		
+		bool report_accept(int logic, int id, int listenid, errno_type err);
+		bool report_connect(int logic, int id, errno_type err);
+		bool report_socketerr(int logic, int id, errno_type err);
+
+		bool post2logic(int id, int logic, logic_msg* ev, const char* flag, const char* file, int line);
 	protected:
 		int reserve_id();
 		socket* new_fd(int id, int logic_id, socket_type fd, const socket_opt& opt, bool add);
-		socket* getsocket(int id);
 
 		void socket_error(socket* s, errno_type e);
-		bool post2logic(int logic, event_head* ev, errno_type err);
+		
 		void on_msg(logic_msg* msg);
+		
 	public:
 		LPFN_TRANSMITFILE						TransmitFile;
 		LPFN_ACCEPTEX								AcceptEx;

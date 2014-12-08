@@ -7,6 +7,7 @@ namespace frame
 	static void msg_connect(logic* self, logic_msg* msg)
 	{
 		logic_connect* m = (logic_connect*)msg;
+		fprintf(stderr, "|logic_connect|%d| [%s]\n",m->id,errno_str(m->err));
 		((connector*)self)->on_connect(m->id,m->err);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
@@ -17,7 +18,9 @@ namespace frame
 	static void msg_err(logic* self, logic_msg* msg)
 	{
 		logic_socketerr* m = (logic_socketerr*)msg;
+		fprintf(stdout, "|logic_socketerr|%d|%s\n", m->id, errno_str(m->err));
 		((connector*)self)->on_socketerr(m->id, m->err);
+		start_close(m->id);
 	}
 
 	connector::connector(iocp& e, const char* _ip, int _port) :logic(e), ip(_ip), port(_port), socket(0)
@@ -51,7 +54,8 @@ namespace frame
 	{
 		fprintf(stdout, "%d on_connect %s\n", logic_id, errno_str(err));
 #define MSG "hellow world"
-		send((char*)MSG, sizeof(MSG));
+		if(err==NO_ERROR)
+			send((char*)MSG, sizeof(MSG));
 	}
 	void connector::on_recv(int id, ring_buffer*buffer)
 	{

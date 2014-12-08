@@ -9,6 +9,7 @@ namespace frame
 	static void msg_accept(logic* self, logic_msg* msg)
 	{
 		logic_accept* m = (logic_accept*)msg;
+		fprintf(stderr, "|logic_accept|%d| [%s]\n", m->id, errno_str(m->err));
 		((listener*)self)->on_accept(m->listenid, m->id);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
@@ -19,7 +20,9 @@ namespace frame
 	static void msg_err(logic* self, logic_msg* msg)
 	{
 		logic_socketerr* m = (logic_socketerr*)msg;
+		fprintf(stdout, "|logic_socketerr|%d|%s\n", m->id, errno_str(m->err));
 		((listener*)self)->on_socketerr(m->id, m->err);
+		start_close(m->id);
 	}
 
 	listener::listener(iocp& e, const char* _ip, int _port) :logic(e), ip(_ip), port(_port), socket(0)
@@ -66,6 +69,6 @@ namespace frame
 	}
 	void listener::on_socketerr(int id, errno_type err)
 	{
-
+		
 	}
 }
