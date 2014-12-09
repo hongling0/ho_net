@@ -72,6 +72,7 @@ namespace frame
 
 	LOGIC_MSG(logic_recv)
 	{
+		~logic_recv(){ delete buffer; }
 		int id;
 		ring_buffer* buffer;
 	};

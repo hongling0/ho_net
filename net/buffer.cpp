@@ -15,11 +15,13 @@ namespace frame
 	}
 	void buffer_head::clean()
 	{
+		sys::lock_guard<sys::spinlock> guard(lock);
 		ring_buffer* b = head;
 		while (b)
 		{
 			head = b->next;
 			delete b;
+			b = head;
 		}
 		tail = NULL;
 	}

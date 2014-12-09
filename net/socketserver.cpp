@@ -59,8 +59,9 @@ namespace frame
 		for (int i = 0; i < MAX_SOCKET; i++) {
 			socket *s = slot[i];
 			if (s->type != SOCKET_TYPE_RESERVE) {
-				s->reset();
+				force_close(s);
 			}
+			delete s;
 		}
 	}
 
@@ -296,7 +297,7 @@ namespace frame
 		if (err)
 		{
 			fprintf(stderr, "|post2logic failure,start_close %d|%s|%s|%s:%d\n", id, flag,errno_str(err), file, line);
-			assert(false);
+			//assert(false);
 		}
 		return err == NO_ERROR;
 	}
@@ -483,6 +484,7 @@ namespace frame
 		io_event * ev = &s->op[socket_ev_read];
 		ev->call = on_ev_recv;
 		if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return FRAME_IO_PENDING;
+		assert(ev->b == NULL);
 		ev->b = new ring_buffer;
 
 		char* ptr;
@@ -512,8 +514,7 @@ namespace frame
 		socket * s = grub_socket(id);
 		if (!s) 
 			return FRAME_INVALID_SOCKET;
-		ring_buffer* b = new ring_buffer(data,sz);
-		s->wb.push_back(b);
+		s->wb.push_back(new ring_buffer(data, sz));
 		int e=ev_send_start(s);
 		if (e != NO_ERROR && e != FRAME_IO_PENDING && e != FRAME_BUFF_EMPTY)
 			dec_socket(id);

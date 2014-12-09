@@ -21,5 +21,6 @@ namespace frame
 		handle_type fd;
 		uint8_t thr;
 		OVERLAPPED quit;
+		volatile int quited;
 	};
 }

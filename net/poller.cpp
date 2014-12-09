@@ -16,6 +16,7 @@ namespace frame
 	{
 		fd = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
 		thr = 0;
+		quited = 0;
 	}
 	iocp::~iocp()
 	{
@@ -23,6 +24,7 @@ namespace frame
 	}
 	void iocp::start_thread(uint8_t n)
 	{
+		quited = 0;
 		n = (n == 0) ? 1 : n;
 		for (; thr < n; thr++)
 		{
@@ -39,6 +41,7 @@ namespace frame
 			PostQueuedCompletionStatus(fd, thr, (ULONG_PTR)this, &quit);
 			thr = 0;
 		}
+		while (quited == 0) Sleep(1);
 	}
 
 	void iocp::run()
@@ -60,6 +63,8 @@ namespace frame
 			{
 				if (--bytes > 0)
 					PostQueuedCompletionStatus(fd, bytes, (ULONG_PTR)this, &quit);
+				else
+					quited = 1;
 				break;
 			}
 			else if (op)

@@ -23,19 +23,4 @@ typedef unsigned long errno_type;
 
 
 
-
-#define CHECKMEMORY()     do{ \
-                            int nFlag = _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ); \
-                            nFlag |= _CRTDBG_LEAK_CHECK_DF; \
-                            _CrtSetDbgFlag( nFlag ); \
-                        } while(0);
-
-inline void * __cdecl operator new(unsigned int size,
-	const char *file, int line)
-{
-	CHECKMEMORY()
-	return ::operator new(size, _NORMAL_BLOCK, file, line);
-};
-
-#define DEBUG_NEW new(__FILE__, __LINE__)
-#define new DEBUG_NEW
+#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)

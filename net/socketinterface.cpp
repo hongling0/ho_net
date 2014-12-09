@@ -15,6 +15,8 @@ namespace frame
 	int stop_socketserver()
 	{
 		io.stop_thread();
+		delete s_server;
+		s_server = NULL;
 		return 0;
 	}
 

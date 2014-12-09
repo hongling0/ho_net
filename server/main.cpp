@@ -32,6 +32,8 @@ public:
 
 int main()
 {
+	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+
 	frame::start_socketserver(1);
 
 	frame::iocp io;
@@ -42,7 +44,11 @@ int main()
 
 	std::string buf;
 	std::cin >> buf;
+	
+	io.stop_thread();
+	frame::stop_socketserver();
+	
 	_CrtDumpMemoryLeaks();
-	while (true) Sleep(1);
+
 	return 1;
 }

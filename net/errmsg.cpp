@@ -85,17 +85,15 @@ namespace frame
 		if (node)
 		{
 			for (; node&&node->err < e; prev = node, node = node->next);
-			if (node->err == e) return node->msg;
+			if ( node&&node->err == e) return node->msg;
 		}
-
-		
 
 		prev = &hash->head[h];
 		node = prev->next;
 		if (node)
 		{
 			for (; node&&node->err < e; prev = node, node = node->next);
-			if (node->err = e)
+			if (node&&node->err==e)
 			{
 				UNLOCK(&hash->lock);
 				return node->msg;

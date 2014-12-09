@@ -12,6 +12,7 @@ namespace frame
 	{
 	public:
 		nocopyable(){}
+		virtual~nocopyable(){}
 		nocopyable(const nocopyable&);
 	protected:
 		nocopyable operator = (const nocopyable&);
@@ -20,17 +21,13 @@ namespace frame
 	struct event_logic;
 	struct logic_msg;
 	class logic;
-	struct msg_handle_store;
 	typedef void(*msg_handle)(logic*,struct logic_msg*);
 	class logic : public nocopyable
 	{
 	public:
 		logic(iocp& io);
 		int post(int destination,logic_msg* msg);
-		int handle() const
-		{
-			return logic_id;
-		}
+		int handle() const	{	return logic_id;	}
 		void addhandler(int msg_id, msg_handle h);
 	protected:
 		friend event_logic;

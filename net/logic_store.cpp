@@ -14,7 +14,7 @@ logic_store::logic_store()
 
 logic_store::~logic_store()
 {
-	::free(slot);
+	free(slot);
 }
 int logic_store::resize()
 {
@@ -28,7 +28,7 @@ int logic_store::resize()
 		int hash = handle & ((slot_size * 2) - 1);
 		newlist[hash] = slot[i];
 	}
-	::free(slot);
+	free(slot);
 	slot = newlist;
 	slot_size = new_size;
 	return slot_size;

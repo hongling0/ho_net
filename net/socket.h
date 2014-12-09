@@ -58,6 +58,10 @@ namespace frame
 			fd = INVALID_SOCKET;
 			reset();
 		}
+		~socket()
+		{
+			reset();
+		}
 		void reset()
 		{
 			if (fd != INVALID_SOCKET)
