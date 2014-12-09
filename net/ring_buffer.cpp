@@ -66,7 +66,7 @@ namespace frame
 	bool ring_buffer::writebuffer(char** ptr, size_t * sz) const
 	{
 		size_t all = capacity - (_write - _read);
-		if (all = 0) return false;
+		if (all == 0) return false;
 		size_t wp = _write%capacity;
 		size_t rp = _read %capacity;
 		*ptr = &buffer[wp];

@@ -1,5 +1,5 @@
 #include <string>
-
+#include <iostream>
 #include "connector.h"
 
 using namespace frame;
@@ -47,7 +47,9 @@ int main()
 		Sleep(1);
 		c->start();
 	}
-
-	while (1) Sleep(100);
+	std::string buf;
+	std::cin >> buf;
+	_CrtDumpMemoryLeaks();
+	while (true) Sleep(1);
 	return 1;
 }

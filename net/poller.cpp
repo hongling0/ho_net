@@ -76,12 +76,12 @@ namespace frame
 	}
 	int iocp::post(void* context, event_head* ev, size_t bytes, errno_type e)
 	{
-		if (thr = 0)
+		if (thr == 0)
 			return FRAME_POLLER_NOT_RUN;
 		SetLastError(0);
 		PostQueuedCompletionStatus(fd, bytes, (ULONG_PTR)context, &ev->op);
 		DWORD last_error = ::GetLastError();
-		if (last_error = WSA_IO_PENDING) last_error = NO_ERROR;
+		if (last_error == WSA_IO_PENDING) last_error = NO_ERROR;
 		return last_error;
 	}
 	bool iocp::append_socket(socket_type s, void* context)

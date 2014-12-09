@@ -38,3 +38,6 @@ client/Debug/
 *.tfb
 *.orig
 Release/
+Debug
+*.vsp
+*.psess

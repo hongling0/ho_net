@@ -11,6 +11,7 @@ namespace frame
 		logic* lgc = (logic*)data;
 		event_logic* ev = (event_logic*)head;
 		lgc->on_logic(ev->msg);
+		delete ev;
 	}
 
 
@@ -64,7 +65,10 @@ namespace frame
 		}
 		else
 		{
-			return io.post(recv, lgc, 0, 0);
+			int err=io.post(recv, lgc, 0, 0);
+			if (err != NO_ERROR&&err != WSA_IO_PENDING)
+				delete lgc;
+			return err;
 		}
 	}
 }

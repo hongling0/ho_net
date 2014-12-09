@@ -41,7 +41,8 @@ namespace frame
 
 	struct event_logic : public event_head
 	{
-		event_logic(){ call = logic_call; }
+		event_logic(){ call = logic_call; msg = 0; }
+		~event_logic(){ delete msg; }
 		logic_msg * msg;
 	protected:
 		static void logic_call(void* data, event_head* head, size_t s, errno_type e);

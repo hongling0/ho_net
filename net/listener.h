@@ -25,5 +25,6 @@ namespace frame
 		std::string ip;
 		int port;
 		int socket;
+		int maps[1+65535]
 	};
 }

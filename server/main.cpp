@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include "listener.h"
 #include "socketinterface.h"
 
@@ -39,6 +40,9 @@ int main()
 	ls l(io);
 	l.start();
 
-	while (1) Sleep(100);
+	std::string buf;
+	std::cin >> buf;
+	_CrtDumpMemoryLeaks();
+	while (true) Sleep(1);
 	return 1;
 }

@@ -33,6 +33,16 @@ namespace frame
 
 	struct io_event : public event_head
 	{
+		io_event()
+		{
+			u = 0;
+			b = 0;
+			ready = 0;
+		}
+		~io_event()
+		{
+			delete b;
+		}
 		void * u;
 		char buf[2*(sizeof(sockaddr_in) + 16)];
 		ring_buffer* b;

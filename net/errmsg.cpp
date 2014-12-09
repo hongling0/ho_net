@@ -85,7 +85,7 @@ namespace frame
 		if (node)
 		{
 			for (; node&&node->err < e; prev = node, node = node->next);
-			if (node->err = e) return node->msg;
+			if (node->err == e) return node->msg;
 		}
 
 		
