@@ -18,9 +18,9 @@ public:
 	virtual void on_recv(int id, ring_buffer*buffer)
 	{
 		count++;
-		if (count / 100 != cnt_10)
+		if (count / 10000 != cnt_10)
 		{
-			cnt_10 = count / 100;
+			cnt_10 = count / 10000;
 			printf("recv msg %d\n", count);
 		}
 		listener::on_recv(id, buffer);
@@ -34,7 +34,7 @@ int main()
 {
 	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 
-	frame::start_socketserver(1);
+	frame::start_socketserver(4);
 
 	frame::iocp io;
 	io.start_thread(1);

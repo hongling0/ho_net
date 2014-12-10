@@ -21,11 +21,10 @@ namespace frame
 		bool read_ok(size_t sz);
 		void clean();
 		ring_buffer* next;
-		ring_buffer* prev;
 	private:
 		char * buffer;
 		size_t capacity;
-		atomic_type _read;
-		atomic_type _write;
+		uint32_t _read;
+		uint32_t _write;
 	};
 }

@@ -74,6 +74,8 @@ namespace frame
 			memset(&remote, 0, sizeof(remote));
 			pending = 0;
 			closing = 0;
+			w_byte = 0;
+			r_byte = 0;
 			wb.clean();
 			rb.clean();
 		}
@@ -86,6 +88,8 @@ namespace frame
 		atomic_type closing;
 		buffer_head wb;
 		buffer_head rb;
+		uint32_t w_byte;
+		uint32_t r_byte;
 		socket_opt opt;
 		SOCKADDR_IN local;
 		SOCKADDR_IN remote;

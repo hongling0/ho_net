@@ -30,15 +30,15 @@ namespace frame
 		socket_server& server = *s_server;
 		return server.start_connet(logic, addr, port, opt, e);
 	}
-	errno_type start_send(int fd, char* data, size_t sz)
+	errno_type start_send(int id, char* data, size_t sz)
 	{
 		socket_server& server = *s_server;
-		return server.start_send(fd, data, sz);
+		return server.start_send(id, data, sz);
 	}
-	errno_type start_close(int fd)
+	errno_type start_close(int id)
 	{
 		socket_server& server = *s_server;
-		return server.start_close(fd);
+		return server.start_close(id);
 	}
 }
 

@@ -1,5 +1,7 @@
 #pragma once
-#define _CRTDBG_MAP_ALLOC
+#ifdef _DEBUG
+//#define _CRTDBG_MAP_ALLOC
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +14,11 @@
 #include <winsock.h>
 #include <process.h> 
 #include <crtdbg.h>
+
+#ifdef _DEBUG
+//#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 #pragma comment(lib,"ws2_32.lib")
 #pragma comment(lib,"mswsock.lib")
 
@@ -21,6 +28,3 @@ typedef HANDLE handle_type;
 typedef SOCKET socket_type;
 typedef unsigned long errno_type;
 
-
-
-#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)

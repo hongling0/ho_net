@@ -9,7 +9,7 @@ namespace frame
 	static void msg_accept(logic* self, logic_msg* msg)
 	{
 		logic_accept* m = (logic_accept*)msg;
-		fprintf(stderr, "|logic_accept|%d| [%s]\n", m->id, errno_str(m->err));
+		fprintf(stdout, "|logic_accept|%d| [%s]\n", m->id, errno_str(m->err));
 		((listener*)self)->on_accept(m->listenid, m->id);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
@@ -40,7 +40,7 @@ namespace frame
 
 		errno_type err;
 		fprintf(stdout, "%d start_listen %s:%d\n", logic_id, ip.c_str(), port);
-		socket = start_listen(logic_id, ip.c_str(), port, 0, opt, err);
+		socket = start_listen(logic_id, ip.c_str(), port, 1024, opt, err);
 		if (!err) return true;
 
 		fprintf(stderr, "start listen %s:%d failure ! %s\n", ip.c_str(), port, errno_str(err));

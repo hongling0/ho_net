@@ -7,7 +7,7 @@ namespace frame
 	static void msg_connect(logic* self, logic_msg* msg)
 	{
 		logic_connect* m = (logic_connect*)msg;
-		fprintf(stderr, "|logic_connect|%d| [%s]\n",m->id,errno_str(m->err));
+		fprintf(stdout, "|logic_connect|%d| [%s]\n", m->id, errno_str(m->err));
 		((connector*)self)->on_connect(m->id,m->err);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
@@ -52,8 +52,9 @@ namespace frame
 
 	void connector::on_connect(int id,errno_type err)
 	{
-		fprintf(stdout, "%d on_connect %s\n", logic_id, errno_str(err));
-#define MSG "hellow world"
+		assert(id == socket);
+		//fprintf(stdout, "%d on_connect %s\n", logic_id, errno_str(err));
+#define MSG "hellow world\nhellow world\nhellow world\nhellow world\nhellow world\nhellow world\nhellow world\n"
 		if(err==NO_ERROR)
 			send((char*)MSG, sizeof(MSG));
 	}

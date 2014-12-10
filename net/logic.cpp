@@ -54,6 +54,7 @@ namespace frame
 
 	int logic::post(int destination, logic_msg* msg)
 	{
+		assert(destination != logic_id);
 		event_logic* lgc = new event_logic;
 		lgc->msg = msg;
 		logic* recv = grub_logic(destination);

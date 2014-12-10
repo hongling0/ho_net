@@ -218,7 +218,8 @@ namespace frame
 				}
 			}
 		}
-		InterlockedExchange(&ev->ready, 0);
+		//InterlockedExchange(&ev->ready, 0);
+		ev->ready = 0;
 	
 		if (InterlockedIncrement(&s->pending) == 2) return io.inner_close(s,2);
 		int e = io.ev_listen_start(s, ev);
@@ -229,7 +230,8 @@ namespace frame
 
 	errno_type socket_server::ev_listen_start(socket* s, io_event* ev)
 	{
-		if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return FRAME_IO_PENDING;
+		//if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return FRAME_IO_PENDING;
+		ev->ready = 1;
 
 		WSASetLastError(0);
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_IP, NULL, 0, WSA_FLAG_OVERLAPPED);
@@ -237,7 +239,8 @@ namespace frame
 		if (fd == INVALID_SOCKET)
 		{
 			closesocket(fd);
-			InterlockedExchange(&ev->ready, 0);
+			//InterlockedExchange(&ev->ready, 0);
+			ev->ready = 0;
 			report_socketerr(s->logic, s->id, err);
 			return err;
 		}
@@ -258,7 +261,8 @@ namespace frame
 		{
 			ev->u = NULL;
 			news->reset();
-			InterlockedExchange(&ev->ready, 0);
+			//InterlockedExchange(&ev->ready, 0);
+			ev->ready = 0;
 			report_socketerr(s->logic, s->id, err);
 			return err;
 		}
@@ -313,7 +317,8 @@ namespace frame
 		if (err == NO_ERROR)
 		{
 			s->type = SOCKET_TYPE_CONNECTED;
-			InterlockedExchange(&ev->ready, 0);
+			//InterlockedExchange(&ev->ready, 0);
+			ev->ready = 0;
 			if (InterlockedIncrement(&s->pending) == 2) return io.inner_close(s, 2);
 			int e = io.ev_recv_start(s);
 			if (e != NO_ERROR)
@@ -389,6 +394,9 @@ namespace frame
 		{
 			ring_buffer* b = ev->b;
 			b->read_ok(sz);
+			uint32_t lsz = s->w_byte;
+			s->w_byte += sz;
+			if (lsz / 1024 / 1024 / 80 != s->w_byte / 1024 / 1024 / 80) fprintf(stdout, "on_ev_send %d0 MB\n", s->w_byte / 1024 / 1024 / 80);
 			if (b->empty())
 			{
 				ev->b = NULL;
@@ -408,21 +416,28 @@ namespace frame
 	{
 		io_event* ev = &s->op[socket_ev_write];
 		ev->call = on_ev_send;
-		if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return FRAME_IO_PENDING;
+		if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0)
+			if (InterlockedIncrement(&ev->ready)!=1)
+				return FRAME_IO_PENDING;
 
 		char* ptr;
 		size_t sz;
 		ring_buffer* b = NULL;
-		if (!ev->b)
+		while (true)
 		{
-			b = s->wb.pop_front();
+			if (!ev->b)
+			{
+				b = s->wb.pop_front();
+				if (b == NULL)
+				{
+					if (InterlockedDecrement(&ev->ready) > 0)
+						continue;
+					return FRAME_BUFF_EMPTY;
+				}
+				ev->b = b;
+			}
+			break;
 		}
-		if (ev->b == NULL&&b==NULL)
-		{
-			InterlockedExchange(&ev->ready, 0);
-			return FRAME_BUFF_EMPTY;
-		}
-		ev->b = b;
 
 		if (!ev->b->readbuffer(&ptr, &sz))
 			assert(false); // can't failure
@@ -455,16 +470,21 @@ namespace frame
 		{
 			ev->b->write_ok(sz);
 			s->rb.push_back(ev->b);
+			uint32_t lsz = s->r_byte;
+			s->r_byte += sz;
+			if (lsz / 1024 / 1024 / 80 != s->r_byte / 1024 / 1024 / 80) fprintf(stdout, "on_ev_recv %d MB\n", s->r_byte / 1024 / 1024 / 80);
 			ev->b = NULL;
 			logic_recv* ev_logic = NULL;
 			if (s->opt.recv(s->id, &s->rb, &ev_logic) == false)
 			{
-				InterlockedExchange(&ev->ready, 0);
+				//InterlockedExchange(&ev->ready, 0);
+				ev->ready = 0;
 				io.report_socketerr(s->logic, s->id, FRAME_IO_PARSEERR);
 				return io.inner_close(s);
 			}
 			io.report_recv(s->logic, s->id, ev_logic);
-			InterlockedExchange(&ev->ready, 0);
+			//InterlockedExchange(&ev->ready, 0);
+			ev->ready = 0;
 
 			if (InterlockedIncrement(&s->pending) == 2) return io.inner_close(s, 2);
 			int e=io.ev_recv_start(s);
@@ -483,7 +503,9 @@ namespace frame
 	{
 		io_event * ev = &s->op[socket_ev_read];
 		ev->call = on_ev_recv;
-		if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return FRAME_IO_PENDING;
+		//if (InterlockedCompareExchange(&ev->ready, 1, 0) != 0) return FRAME_IO_PENDING;
+		assert(ev->ready == 0);
+		ev->ready = 1;
 		assert(ev->b == NULL);
 		ev->b = new ring_buffer;
 
@@ -504,6 +526,7 @@ namespace frame
 		if (err&&err != WSA_IO_PENDING)
 		{
 			report_socketerr(s->logic, s->id, err);
+			ev->ready = 0;
 			return err;
 		}
 		return NO_ERROR;

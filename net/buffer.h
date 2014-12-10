@@ -17,5 +17,6 @@ namespace frame
 		void push_front(ring_buffer* b);
 		void push_back(ring_buffer* b);
 		ring_buffer* pop_front();
+		bool empty(){ return head!=NULL; }
 	};
 }

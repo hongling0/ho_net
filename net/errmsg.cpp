@@ -23,6 +23,19 @@ namespace frame
 	{
 		struct errnode head[ERRNO_HASH_SIZE];
 		atomic_type lock;
+		~errhash()
+		{
+			for (unsigned i = 0; i < ERRNO_HASH_SIZE; ++i)
+			{
+				struct errnode * node = head[i].next;
+				while (node)
+				{
+					struct errnode * next = node->next;
+					free(node);
+					node = next;
+				}
+			}
+		}
 	};
 
 	struct errhash HASH;
@@ -85,7 +98,11 @@ namespace frame
 		if (node)
 		{
 			for (; node&&node->err < e; prev = node, node = node->next);
-			if ( node&&node->err == e) return node->msg;
+			if (node&&node->err == e)
+			{
+				UNLOCK(&hash->lock);
+				return node->msg;
+			}
 		}
 
 		prev = &hash->head[h];

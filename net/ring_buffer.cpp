@@ -4,38 +4,57 @@ namespace frame
 {
 	ring_buffer::ring_buffer()
 	{
-		memset(this, 0, sizeof(*this));
-		init(4096);
+		buffer = 0;
+		next = 0;
+		init(128);
 	}
 	ring_buffer::ring_buffer(size_t len)
 	{
 		size_t sz = 2;
 		while (sz < len) sz *= 2;
-		memset(this, 0, sizeof(*this));
+		buffer = 0;
+		next = 0;
 		if (len > 0)
 			init(sz);
+		else
+		{
+			capacity = 0;
+			_read = 0;
+			_write = 0;
+		}
 	}
 	ring_buffer::ring_buffer(char* data, size_t len)
 	{
 		size_t sz = 2;
 		while (sz < len) sz *= 2;
-		memset(this, 0, sizeof(*this));
+		buffer = 0;
+		next = 0;
 		if (len > 0)
+		{
 			init(sz);
-		write(data, sz);
+			write(data, sz);
+		}
+		else
+		{
+			capacity = 0;
+			_read = 0;
+			_write = 0;
+		}
 	}
 	ring_buffer::~ring_buffer()
 	{
-		init(0);
+		free(buffer);
 	}
 	void ring_buffer::init(size_t sz)
 	{
-		delete[] buffer;
-		memset(this, 0, sizeof(*this));
+		free(buffer);
+		buffer = 0;
+		capacity = 0;
+		_read = 0;
+		_write = 0;
 		if (sz>0)
 		{
-			buffer = new char[sz];
-			memset(buffer, 0, sz);
+			buffer = (char*)malloc(sz);
 			capacity = sz;
 		}
 	}
