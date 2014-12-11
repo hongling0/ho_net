@@ -270,29 +270,31 @@ namespace frame
 		return NO_ERROR;
 	}
 
-	int socket_server::start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, errno_type& e)
+	errno_type socket_server::start_listen(int logic, const char * addr, int port, int backlog, const socket_opt& opt, int& id)
 	{
 		WSASetLastError(0);
 		SOCKET fd = do_listen(addr, port, backlog);
 		if (fd == INVALID_SOCKET)
-		{
-			e = WSAGetLastError();
-			return 0;
-		}
+			return WSAGetLastError();
 
-		int id = reserve_id();
+		id = reserve_id();
 		socket* s = new_fd(id, logic, fd, opt, true);
 		if (!s)
 		{
-			e = WSAGetLastError();
-			return 0;
+			id = 0;
+			inner_close(s);
+			return WSAGetLastError();
 		}
 		s->type = SOCKET_TYPE_LISTEN;
 		InterlockedIncrement(&s->pending);
-		e = ev_listen_start(s, &s->op[socket_ev_read]);
-		if (e)
-			inner_close(s);
-		return id;
+		errno_type e = ev_listen_start(s, &s->op[socket_ev_read]);
+		assert(e == NO_ERROR);
+		InterlockedIncrement(&s->pending);
+		e = ev_listen_start(s, &s->op[socket_ev_write]);
+		assert(e == NO_ERROR);
+		//if (e)
+		//	inner_close(s);
+		return NO_ERROR;
 	}
 
 	bool socket_server::post2logic( int id,int logic, logic_msg* ev, const char* flag, const char* file, int line)
@@ -330,13 +332,13 @@ namespace frame
 		}
 	}
 
-	int socket_server::start_connet(int logic, const char * host, int port, const socket_opt& opt, errno_type& err)
+	errno_type socket_server::start_connet(int logic, const char * host, int port, const socket_opt& opt, int& id)
 	{
 		WSASetLastError(0);
 		SOCKET fd = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-		err = WSAGetLastError();
+		errno_type err = WSAGetLastError();
 		if (fd == INVALID_SOCKET)
-			return 0;
+			return err;
 
 		SOCKADDR_IN localaddr;
 		memset(&localaddr, 0, sizeof(localaddr));
@@ -347,19 +349,21 @@ namespace frame
 		{
 			closesocket(fd);
 			err = WSAGetLastError();
-			return 0;
+			return err;
 		}
 
 		localaddr.sin_addr.s_addr = inet_addr(host);
 		localaddr.sin_port = htons(port);
 
-		int id = reserve_id();
+		id = reserve_id();
 		socket * s = new_fd(id, logic, fd, opt, true);
-		if (!s)
-		{
-			err = WSAGetLastError();
-			return 0;
+		//fprintf(stdout, "|start_connet|%d|%d %p\n", logic, id, s);
+		if (!s){
+			id = 0;
+			inner_close(s);
+			return WSAGetLastError();
 		}
+			
 
 		s->type = SOCKET_TYPE_CONNECTING;
 		s->op[socket_ev_read].call = event_connect;
@@ -372,11 +376,12 @@ namespace frame
 		err = WSAGetLastError();
 		if (err&&err != WSA_IO_PENDING)
 		{
+			id = 0;
 			inner_close(s);
-			return 0;
+			return err;
 		}
-		err = NO_ERROR;
-		return id;
+		assert(id > 0);
+		return NO_ERROR;
 	}
 
 	static void on_ev_send(void* data, event_head* head, size_t sz, errno_type err)

@@ -43,11 +43,11 @@ int main()
 	frame::iocp io;
 	io.start_thread(1);
 
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < 10000; ++i)
 	{
 		frame::connector * c = new cnt(io);
-		Sleep(10);
-		c->start();
+		//Sleep(0);
+		assert(c->start());
 	}
 	std::string buf;
 	std::cin >> buf;

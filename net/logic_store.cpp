@@ -24,7 +24,7 @@ int logic_store::resize()
 	memset(newlist, 0, sizeof(logic*)*new_size);
 	for (int i = 0; i < slot_size; i++)
 	{
-		int handle = slot[i]->handle();
+		int handle = slot[i]->logic_id;
 		int hash = handle & ((slot_size * 2) - 1);
 		newlist[hash] = slot[i];
 	}
@@ -59,7 +59,7 @@ logic* logic_store::grub(int id)
 	lock.rlock();
 	int hash = id&(slot_size - 1);
 	logic* lgc = slot[hash];
-	if (!lgc || lgc->handle() != id)
+	if (!lgc || lgc->logic_id != id)
 		lgc = NULL;
 	lock.runlock();
 	return lgc;
