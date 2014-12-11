@@ -14,8 +14,8 @@ namespace frame
 	class listener : public logic
 	{
 	public:
-		listener(iocp& e, const char* _ip, int _port);
-		bool start(protocol_call call = default_protocol);
+		listener(iocp& e, protocol_call call = default_protocol);
+		bool start(const char* _ip, int _port);
 		void close();
 		
 		virtual void on_accept(int listenid, int newid);
@@ -25,5 +25,6 @@ namespace frame
 		std::string ip;
 		int port;
 		int socket;
+		protocol_call call;
 	};
 }

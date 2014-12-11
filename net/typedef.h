@@ -28,3 +28,9 @@ typedef HANDLE handle_type;
 typedef SOCKET socket_type;
 typedef unsigned long errno_type;
 
+#ifdef _DEBUG
+#define ASSERT(exp, ...) do{ if (!(exp)) { fprintf(stderr, __VA_ARGS__);assert((exp)) } } while (0);
+#else
+#define ASSERT(exp, ...) ((void) 0)
+#endif
+

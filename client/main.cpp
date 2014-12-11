@@ -7,7 +7,7 @@ using namespace frame;
 class cnt : public connector
 {
 public:
-	cnt(frame::iocp& io) :connector(io, "127.0.0.1", 1000)
+	cnt(frame::iocp& io) :connector(io)
 	{
 		cnt_10 = 0;
 		count = 0;
@@ -47,7 +47,7 @@ int main()
 	{
 		frame::connector * c = new cnt(io);
 		//Sleep(0);
-		assert(c->start());
+		assert(c->start("127.0.0.1",1000));
 	}
 	std::string buf;
 	std::cin >> buf;

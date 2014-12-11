@@ -9,8 +9,8 @@ namespace frame
 	class connector : public logic
 	{
 	public:
-		connector(iocp& e, const char* _ip, int _port);
-		bool start(protocol_call call = default_protocol);
+		connector(iocp& e, protocol_call call = default_protocol);
+		bool start(const char* _ip, int _port);
 		void close();
 
 		void send(char* data, size_t sz);
@@ -22,5 +22,6 @@ namespace frame
 		std::string ip;
 		int port;
 		int socket;
+		protocol_call call;
 	};
 }
