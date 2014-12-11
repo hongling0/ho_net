@@ -9,7 +9,7 @@ namespace frame
 	static void msg_accept(logic* self, logic_msg* msg)
 	{
 		logic_accept* m = (logic_accept*)msg;
-		fprintf(stdout, "|logic_accept|%d| [%s]\n", m->id, errno_str(m->err));
+		//fprintf(stdout, "|logic_accept|%d| [%s]\n", m->id, errno_str(m->err));
 		((listener*)self)->on_accept(m->listenid, m->id);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
@@ -20,7 +20,7 @@ namespace frame
 	static void msg_err(logic* self, logic_msg* msg)
 	{
 		logic_socketerr* m = (logic_socketerr*)msg;
-		fprintf(stdout, "|logic_socketerr|%d|%s\n", m->id, errno_str(m->err));
+		//fprintf(stdout, "|logic_socketerr|%d|%s\n", m->id, errno_str(m->err));
 		((listener*)self)->on_socketerr(m->id, m->err);
 		start_close(m->id);
 	}
@@ -38,12 +38,11 @@ namespace frame
 		socket_opt opt;
 		opt.recv = call;
 
-		errno_type err;
-		fprintf(stdout, "%d start_listen %s:%d\n", logic_id, ip.c_str(), port);
-		socket = start_listen(logic_id, ip.c_str(), port, 1024, opt, err);
+		//fprintf(stdout, "%d start_listen %s:%d\n", logic_id, ip.c_str(), port);
+		errno_type err=start_listen(logic_id, ip.c_str(), port, 1024, opt, socket);
 		if (!err) return true;
 
-		fprintf(stderr, "start listen %s:%d failure ! %s\n", ip.c_str(), port, errno_str(err));
+		//fprintf(stderr, "start listen %s:%d failure ! %s\n", ip.c_str(), port, errno_str(err));
 		return false;
 	}
 	void listener::close()
@@ -54,7 +53,7 @@ namespace frame
 
 	void listener::on_accept(int listenid, int newid)
 	{
-		fprintf(stdout, "%d logic %d accept %d\n", logic_id, listenid,newid);
+		//fprintf(stdout, "%d logic %d accept %d\n", logic_id, listenid,newid);
 	}
 	void listener::on_recv(int id, ring_buffer*buffer)
 	{

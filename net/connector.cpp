@@ -7,7 +7,7 @@ namespace frame
 	static void msg_connect(logic* self, logic_msg* msg)
 	{
 		logic_connect* m = (logic_connect*)msg;
-		fprintf(stdout, "|logic_connect|%d| [%s]\n", m->id, errno_str(m->err));
+		//fprintf(stdout, "|logic_connect|%d| [%s]\n", m->id, errno_str(m->err));
 		((connector*)self)->on_connect(m->id,m->err);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
@@ -18,7 +18,7 @@ namespace frame
 	static void msg_err(logic* self, logic_msg* msg)
 	{
 		logic_socketerr* m = (logic_socketerr*)msg;
-		fprintf(stdout, "|logic_socketerr|%d|%s\n", m->id, errno_str(m->err));
+		//fprintf(stdout, "|logic_socketerr|%d|%s\n", m->id, errno_str(m->err));
 		((connector*)self)->on_socketerr(m->id, m->err);
 		start_close(m->id);
 	}
@@ -31,32 +31,39 @@ namespace frame
 	}
 	bool connector::start(protocol_call call/* = default_protocol*/)
 	{
-		if (socket) return true;
+		if (socket) 
+			return true;
 
 		socket_opt opt;
 		opt.recv = call;
 
-		errno_type err;
-		fprintf(stdout, "%d start_connet %s:%d\n", logic_id, ip.c_str(), port);
-		socket = start_connet(logic_id, ip.c_str(), port,opt, err);
-		if (!err) return true;
-
-		fprintf(stderr, "connet %s:%d failure ! %s\n", ip.c_str(), port, errno_str(err));
+		errno_type err = start_connet(logic_id, ip.c_str(), port, opt, socket);
+		//fprintf(stdout, "|start_connet|%d|%s:%d|%d\n", logic_id, ip.c_str(), port, socket);
+		if (!err && socket > 0)
+			return true;
+		//fprintf(stderr, "|start_connet|%d failure|%s:%d|%d %s\n", logic_id, ip.c_str(), port, errno_str(err));
 		return false;
 	}
 	void connector::close()
 	{
 		if (!socket) return;
 		start_close(socket);
+		socket = 0;
 	}
 
 	void connector::on_connect(int id,errno_type err)
 	{
-		assert(id == socket);
+		if (id != socket)
+		{
+			fprintf(stdout, "|on_connect|%d id error|%d %d\n", logic_id,socket, id);
+			fflush(stdout);
+			assert(false);
+		}
+			
 		//fprintf(stdout, "%d on_connect %s\n", logic_id, errno_str(err));
 #define MSG "hellow world\nhellow world\nhellow world\nhellow world\nhellow world\nhellow world\nhellow world\n"
-		if(err==NO_ERROR)
-			send((char*)MSG, sizeof(MSG));
+		//if(err==NO_ERROR)
+			//send((char*)MSG, sizeof(MSG));
 	}
 	void connector::on_recv(int id, ring_buffer*buffer)
 	{

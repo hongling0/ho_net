@@ -27,14 +27,13 @@ namespace frame
 	public:
 		logic(iocp& io);
 		int post(int destination,logic_msg* msg);
-		int handle() const	{	return logic_id;	}
 		void addhandler(int msg_id, msg_handle h);
+		const int logic_id;
 	protected:
 		friend event_logic;
 		void on_logic(struct logic_msg* msg);
 	protected:
 		iocp& io;
-		const int logic_id;
 		binary_arry<msg_handle> array;
 	};
 
