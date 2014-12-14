@@ -26,6 +26,7 @@
     <ClInclude Include="socket.h" />
     <ClInclude Include="socketinterface.h" />
     <ClInclude Include="socketserver.h" />
+    <ClInclude Include="timer.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>
   <ItemGroup>
@@ -40,6 +41,7 @@
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="socketinterface.cpp" />
     <ClCompile Include="socketserver.cpp" />
+    <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3BD78F04-9C62-41DF-A86E-06DD32679AF0}</ProjectGuid>
