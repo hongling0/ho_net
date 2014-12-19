@@ -2,6 +2,7 @@
 
 #include "typedef.h"
 #include "event.h"
+#include "timer.h"
 
 namespace frame
 {
@@ -15,12 +16,19 @@ namespace frame
 		void stop_thread();
 		void run();
 		void wait();
+		void wakethread(void * context);
 		int post(void* context, event_head* ev, size_t bytes, errno_type e);
 		bool append_socket(socket_type s, void* context);
+		uint32_t start_timer(timer_call call, timer_context u, uint32_t wait = 0);
+		void stop_timer(uint32_t idx);
 	protected:
 		handle_type fd;
 		uint8_t thr;
 		OVERLAPPED quit;
+		OVERLAPPED wake;
 		volatile int quited;
+
+		long in_timer;
+		timer tm;
 	};
 }

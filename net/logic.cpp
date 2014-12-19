@@ -72,4 +72,15 @@ namespace frame
 			return err;
 		}
 	}
+
+	uint32_t logic::start_timer(timer_call call, timer_context u,uint32_t wait)
+	{
+		return io.start_timer(call, u, wait);
+	}
+
+	void logic::stop_timer(uint32_t idx)
+	{
+		io.stop_timer(idx);
+	}
+
 }

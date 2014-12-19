@@ -1,7 +1,10 @@
 #pragma once
 #include "typedef.h"
+#include "lock.h"
 
-#define TIMER_HASH_SIZE 4096
+#define TIMER_HASH_SIZE 1024
+#define TIME_NEAR (1<<8)
+#define TIME_LEVEL (1 << 6)
 
 namespace frame
 {
@@ -12,7 +15,7 @@ namespace frame
 		double d;
 	};
 	typedef void(*timer_call)(timer_context u);
-	class timer
+	class timer : public sys::spinlock
 	{
 	private:
 		struct timer_node
@@ -39,15 +42,28 @@ namespace frame
 		void execute();
 		void shift();
 		void tick();
-		void addto_list(timer_node* r, timer_list* list);
+		
+		void addto_list(timer_node* r);
 		void delfrom_list(timer_node* r);
 		void addto_hash(timer_node* r);
 		void delfrom_hash(timer_node* r);
+
+		timer_node* list_clear(timer_list* list);
+		void list_move(int level, int idx);
+		void list_add(timer_list* list, timer_node* r);
+
+		timer_node* alloc();
+		void dealloc(timer_node* n);
+
 	private:
-		timer_list n[4][2 ^ 6];
-		timer_list t[2 ^ 8];
+		timer_list n[4][TIME_LEVEL];
+		timer_list t[TIME_NEAR];
 		timer_node h[TIMER_HASH_SIZE];
 		uint32_t index;
-		uint32_t timer_tick;
+		uint64_t timer_tick;
+		uint32_t time;
+		timer_node* freenode;
+		uint32_t free_cnt;
+		uint32_t use_cnt;
 	};
 }

@@ -25,7 +25,7 @@ namespace frame
 		start_close(m->id);
 	}
 
-	listener::listener(iocp& e, protocol_call _call = default_protocol) :logic(e),call(_call),port(0), socket(0)
+	listener::listener(iocp& e, protocol_call _call /*= default_protocol */) :logic(e),call(_call),port(0), socket(0)
 	{
 		addhandler(logic_msg_id<logic_accept>::id, &msg_accept);
 		addhandler(logic_msg_id<logic_recv>::id, &msg_recv);

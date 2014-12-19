@@ -11,7 +11,7 @@ using namespace frame;
 class ls : public listener
 {
 public:
-	ls(iocp& io) :listener(io, "", 1000)
+	ls(iocp& io) :listener(io)
 	{
 
 	}
@@ -30,10 +30,7 @@ public:
 	int count;
 };
 
-int main;'
-
-p[]
-pollllllllllllllllllllllllllllll.'()
+int main()
 {
 	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 
@@ -43,7 +40,7 @@ pollllllllllllllllllllllllllllll.'()
 	io.start_thread(1);
 
 	ls l(io);
-	l.start();
+	l.start("127.0.0.1",1000);
 
 	std::string buf;
 	std::cin >> buf;

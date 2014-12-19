@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "net", "net\ho.vcxproj", "{3BD78F04-9C62-41DF-A86E-06DD32679AF0}"
 EndProject
@@ -11,6 +11,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "server", "server\server.vcx
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "client", "client\client.vcxproj", "{034AE557-B956-4B4D-983F-90B83F30BA12}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3BD78F04-9C62-41DF-A86E-06DD32679AF0} = {3BD78F04-9C62-41DF-A86E-06DD32679AF0}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{FEE608EA-A39D-4DE4-A475-002D3464D6BA}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_timer", "test\test_timer.vcxproj", "{4BB45DE5-C08A-4E46-8015-1DC78678B632}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3BD78F04-9C62-41DF-A86E-06DD32679AF0} = {3BD78F04-9C62-41DF-A86E-06DD32679AF0}
 	EndProjectSection
@@ -33,9 +40,16 @@ Global
 		{034AE557-B956-4B4D-983F-90B83F30BA12}.Debug|Win32.Build.0 = Debug|Win32
 		{034AE557-B956-4B4D-983F-90B83F30BA12}.Release|Win32.ActiveCfg = Release|Win32
 		{034AE557-B956-4B4D-983F-90B83F30BA12}.Release|Win32.Build.0 = Release|Win32
+		{4BB45DE5-C08A-4E46-8015-1DC78678B632}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4BB45DE5-C08A-4E46-8015-1DC78678B632}.Debug|Win32.Build.0 = Debug|Win32
+		{4BB45DE5-C08A-4E46-8015-1DC78678B632}.Release|Win32.ActiveCfg = Release|Win32
+		{4BB45DE5-C08A-4E46-8015-1DC78678B632}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4BB45DE5-C08A-4E46-8015-1DC78678B632} = {FEE608EA-A39D-4DE4-A475-002D3464D6BA}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

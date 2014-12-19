@@ -29,6 +29,8 @@ namespace frame
 		int post(int destination,logic_msg* msg);
 		void addhandler(int msg_id, msg_handle h);
 		const int logic_id;
+		uint32_t start_timer(timer_call call, timer_context u, uint32_t wait);
+		void stop_timer(uint32_t idx);
 	protected:
 		friend event_logic;
 		void on_logic(struct logic_msg* msg);

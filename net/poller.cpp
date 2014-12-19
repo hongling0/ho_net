@@ -16,7 +16,7 @@ namespace frame
 	{
 		fd = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
 		thr = 0;
-		quited = 0;
+		quited = 1;
 	}
 	iocp::~iocp()
 	{
@@ -51,6 +51,13 @@ namespace frame
 			DWORD bytes;
 			DWORD completion_key = 0;
 			LPOVERLAPPED op;
+
+			if (InterlockedCompareExchange(&in_timer, 1, 0) == 0)
+			{
+				tm.update();
+				InterlockedExchange(&in_timer, 0);
+			}
+
 			SetLastError(0);
 			BOOL ret = GetQueuedCompletionStatus(fd, &bytes, &completion_key, &op, 500);
 			DWORD last_error = ::GetLastError();
@@ -66,7 +73,7 @@ namespace frame
 				else
 					quited = 1;
 				break;
-			}
+			} 
 			else if (op)
 			{
 				event_head* ev = (event_head*)op;
@@ -94,4 +101,14 @@ namespace frame
 		return CreateIoCompletionPort((HANDLE)s, fd, (ULONG_PTR)context, 0)!=0;
 	}
 
+	uint32_t iocp::start_timer(timer_call call, timer_context u, uint32_t wait/* = 0*/)
+	{
+		lock_guard<timer> guard(tm);
+		return tm.add(call, u, wait);
+	}
+	void iocp::stop_timer(uint32_t idx)
+	{
+		lock_guard<timer> guard(tm);
+		tm.del(idx);
+	}
 }
