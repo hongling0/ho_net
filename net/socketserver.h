@@ -12,9 +12,7 @@ namespace frame
 
 
 
-	const int MAX_SOCKET_P = 16;
-	const int MAX_SOCKET = (1 << MAX_SOCKET_P);
-	const int MIN_READ_BUFFER = 64;
+	const int MAX_SOCKET = (1 << 16);
 
 	class socket_server : public logic
 	{

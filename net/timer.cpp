@@ -5,7 +5,7 @@
 
 #define TIME_NEAR_MASK (TIME_NEAR-1)
 #define TIME_LEVEL_MASK (TIME_LEVEL-1)
-#define TIME_SLOT_LEN 100
+#define TIME_SLOT_LEN 10
 
 namespace frame
 {
@@ -16,7 +16,7 @@ namespace frame
 		ULARGE_INTEGER u_int;
 		u_int.HighPart = ft.dwHighDateTime;
 		u_int.LowPart = ft.dwLowDateTime;
-		return u_int.QuadPart / 10 / TIME_SLOT_LEN;
+		return u_int.QuadPart / 10 / 1000 / TIME_SLOT_LEN;  // ns to ms
 	}
 
 	timer::timer()
@@ -56,19 +56,23 @@ namespace frame
 	{
 		uint32_t expire = r->expire;
 		uint32_t current_time = time;
+		if (expire < current_time)
+		{
+			assert(false);
+		}
 		if ((expire | TIME_NEAR_MASK) == (current_time | TIME_NEAR_MASK))
 			list_add(&t[expire &TIME_NEAR_MASK],r);
 		else
 		{
 			int i = 0;
-			uint32_t mask = TIME_NEAR;
+			uint32_t mask = TIME_NEAR << 6;
 			for (; i < 3; i++)
 			{
-				mask <<= 6;
 				if ((expire | (mask - 1)) == (current_time | (mask - 1)))
 					break;
+				mask <<= 6;
 			}
-			list_add(&n[i][(expire & (8 + i * 6))&TIME_LEVEL_MASK], r);
+			list_add(&n[i][(expire >> (8 + i * 6))&TIME_LEVEL_MASK], r);
 		}
 	}
 	uint32_t timer::add(timer_call call, timer_context ctx, uint32_t wait)
@@ -79,7 +83,7 @@ namespace frame
 		r->id = ++index;
 		wait = wait / TIME_SLOT_LEN;
 		wait = wait ? wait : 1;
-		r->expire = time + wait/TIME_SLOT_LEN;
+		r->expire = time + wait;
 		r->hash_next = NULL;
 		r->hash_prev = NULL;
 		r->list_next = NULL;
@@ -158,7 +162,7 @@ namespace frame
 		while (r)
 		{
 			timer_node* n = r->list_next;
-			n->list_prev = NULL;
+			r->list_prev = NULL;
 			r->list_next = NULL;
 			addto_list(r);
 			r = n;
@@ -187,18 +191,18 @@ namespace frame
 		}
 		else
 		{
-			uint32_t time = ct >> 8;
+			uint32_t t = ct >> 8;
 			int i = 0;
 
 			while ((ct & (mask - 1)) == 0)
 			{
-				int idx = time & TIME_LEVEL_MASK;
+				int idx = t & TIME_LEVEL_MASK;
 				if (idx != 0) {
 					list_move(i, idx);
 					break;
 				}
 				mask <<= 6;
-				time >>= 6;
+				t >>= 6;
 				++i;
 			}
 		}

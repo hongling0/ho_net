@@ -14,10 +14,10 @@ uint32_t context::counter = 0;
 void test_callback(timer_context u)
 {
 	context* ctx = (context*)u.p;
-	if (ctx->counter%100000==0)
+	//if (ctx->counter%100000==0)
 		fprintf(stdout, "timeout:%p,%d\n", u.p, ctx->counter);
 	ctx->counter++;
-	ctx->io->start_timer(test_callback, u, 0);
+	ctx->io->start_timer(test_callback, u, 1000);
 }
 
 void start_timer(iocp& io)
@@ -25,7 +25,7 @@ void start_timer(iocp& io)
 	context* ctx = new context();
 	ctx->io = &io;
 	timer_context u; u.p = ctx;
-	ctx->io->start_timer(test_callback, u, 0);
+	ctx->io->start_timer(test_callback, u, 1000);
 }
 
 int main()
@@ -33,9 +33,9 @@ int main()
 	_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
 
 	frame::iocp io;
-	io.start_thread(1);
+	io.start_thread(8);
 
-	for (int i = 0; i < 9999; ++i)
+	for (int i = 0; i < 1; ++i)
 	{
 		start_timer(io);
 	}
