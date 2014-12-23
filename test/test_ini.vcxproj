@@ -11,56 +11,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="atomic.h" />
-    <ClInclude Include="binary_arry.h" />
-    <ClInclude Include="buffer.h" />
-    <ClInclude Include="connector.h" />
-    <ClInclude Include="errmsg.h" />
-    <ClInclude Include="event.h" />
-    <ClInclude Include="listener.h" />
-    <ClInclude Include="lock.h" />
-    <ClInclude Include="logic.h" />
-    <ClInclude Include="logic_store.h" />
-    <ClInclude Include="mysqlcon.h" />
-    <ClInclude Include="ini.h" />
-    <ClInclude Include="poller.h" />
-    <ClInclude Include="ring_buffer.h" />
-    <ClInclude Include="socket.h" />
-    <ClInclude Include="socketinterface.h" />
-    <ClInclude Include="socketserver.h" />
-    <ClInclude Include="timer.h" />
-    <ClInclude Include="typedef.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="buffer.cpp" />
-    <ClCompile Include="connector.cpp" />
-    <ClCompile Include="errmsg.cpp" />
-    <ClCompile Include="listener.cpp" />
-    <ClCompile Include="logic.cpp" />
-    <ClCompile Include="logic_store.cpp" />
-    <ClCompile Include="mysqlcon.cpp" />
-    <ClCompile Include="ini.cpp" />
-    <ClCompile Include="poller.cpp" />
-    <ClCompile Include="ring_buffer.cpp" />
-    <ClCompile Include="socket.cpp" />
-    <ClCompile Include="socketinterface.cpp" />
-    <ClCompile Include="socketserver.cpp" />
-    <ClCompile Include="timer.cpp" />
+    <ClCompile Include="test_ini.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{3BD78F04-9C62-41DF-A86E-06DD32679AF0}</ProjectGuid>
-    <RootNamespace>ho</RootNamespace>
-    <ProjectName>net</ProjectName>
+    <ProjectGuid>{526EF3C6-8E68-4981-8837-18439CB96F1B}</ProjectGuid>
+    <RootNamespace>test_ini</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -76,21 +41,24 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)lib\</OutDir>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)lib\</OutDir>
+    <IncludePath>$(SolutionDir)net;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>.</AdditionalIncludeDirectories>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)net;$(IncludePath)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ForceSymbolReferences>__tcmalloc</ForceSymbolReferences>
+      <AdditionalDependencies>net.lib;libtcmalloc_minimal-debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -100,12 +68,16 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)3rd/mysql5.6/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)net;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ForceSymbolReferences>__tcmalloc</ForceSymbolReferences>
+      <AdditionalDependencies>net.lib;libtcmalloc_minimal.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
