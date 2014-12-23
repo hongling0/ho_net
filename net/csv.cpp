@@ -53,12 +53,16 @@ namespace cfg
 			break;
 			case '\r':
 			{
-				if (with_quote&&*(ptr + 1) == '\n')
+				if (with_quote==0&&*(ptr + 1) == '\n')
 				{
 					SET_CHAR(ptr, bytes, '\0');
-					assert(with_quote > 0);
 					parse_ptr = ptr + 2;
+					need_nextline = 1;
 					return true;
+				}
+				else
+				{
+					MV_CHAR(ptr, bytes);
 				}
 			}
 			break;
