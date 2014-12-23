@@ -1,14 +1,13 @@
 #pragma once
 #include <mysql.h>
-
+/*
 namespace sql
 {
 	struct sqlopt
 	{
 		char* type;
 		char* host;
-		int port;
-		char* user;
+		int port; 
 		char* pwd;
 		char* db;
 		char* charset;
@@ -25,3 +24,4 @@ namespace sql
 		MYSQL_ROW row;
 	};
 }
+*/

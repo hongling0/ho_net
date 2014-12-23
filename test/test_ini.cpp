@@ -1,6 +1,6 @@
 #include <string>
 #include <iostream>
-#include "option.h"
+#include "ini.h"
 
 using namespace cfg;
 
