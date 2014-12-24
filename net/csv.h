@@ -32,6 +32,24 @@ namespace cfg
 			struct line * next;
 			char * column[1];
 		};
+		csv();
+		~csv();
+		bool parse(char* data);
+
+	protected:
+		bool parse_head();
+		void resize_line();
+	private:
+		int col_cnt;
+		int line_cnt;
+		int line_cap;
+		struct line ** list;
 	};
 
+	class csvfile : public csv
+	{
+	public:
+		bool load(const char*);
+		bool save(const char*);
+	};
 }
