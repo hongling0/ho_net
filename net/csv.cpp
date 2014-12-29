@@ -119,57 +119,61 @@ namespace cfg
 		struct column_node * next;
 		char * data;
 	};
-	bool csv::parse(char* data)
+
+	struct line_node
 	{
-		csv_parse p(data);
-		if(!p.next_line()) return true;
-		struct column_node head_node = { NULL, NULL };
-		struct column_node *tail_node = &head_node;
-		for (;;)
+		struct line_node * next;
+		struct column_node head;
+		struct column_node* tail;
+	};
+
+	bool csv::parse(char* str)
+	{
+		csv_parse p(str);
+		struct line_node line_head;
+		struct line_node* tail;;
+		line_head.next = NULL;
+		tail = &line_head;
+		int line_num = 0;
+		for (;p.next_line();)
 		{
-			char *ptr = NULL;
-			if (!p.next_column(&ptr))
-				return false;
-			struct column_node * n = (struct column_node*)malloc(sizeof(*n));
-			n->next = NULL;
-			n->data = ptr;
-			tail_node->next = n;
-			tail_node = n;
-			++col_cnt;
+			struct line_node * n = (struct line_node*)malloc(sizeof(*n));
+			n->head.next = NULL;
+			n->tail = &n->head;
+			tail->next = n;
+			tail = n;
+			int col_num = 0;
+			for (;;)
+			{
+				char *ptr = NULL;
+				if (!p.next_column(&ptr))
+					break;
+				struct column_node * n = (struct column_node*)malloc(sizeof(*n));
+				n->next = NULL;
+				n->data = ptr;
+				tail->tail->next = n;
+				tail->tail = n;
+				++col_num;
+			}
+			col_cnt = col_num;
+			++line_num;
 		}
-		size_t sz = sizeof(struct line) + sizeof(char*)*(col_cnt - 1);
-		struct line* l = (struct line*)malloc(sz);
-		l->next = NULL;
-		struct column_node * cur = head_node.next;
-		for (int i = 0; i < col_cnt; i++)
+		line_cnt = line_num;
+		data = (char***)malloc(sizeof(char*)*line_cnt*col_cnt);
+		for (struct line_node* cur=line_head.next,int line=0;cur;++line)
 		{
-			l->column[i] = cur->data;
-			struct column_node * next = cur->next;
+			struct line_node* next=cur->next;
+			for (struct column_node* c = cur->head.next, int row = 0; c;++row)
+			{
+				struct column_node* next = c->next;
+				data[line][row] = c->data;
+				free(c);
+				c = next;
+			}
 			free(cur);
 			cur = next;
 		}
-		tail->next = l;
-		tail = l;
-		line_cnt = 1;
-		while (p.next_line())
-		{
-			line_cnt++;
-			size_t sz = sizeof(struct line) + sizeof(char*)*(col_cnt - 1);
-			struct line* l = (struct line*)malloc(sz);
-			l->next = NULL;
-			tail->next = l;
-			tail = l;
-			int cnt = 0;
-			for (;;)
-			{
-				char* ptr = NULL;
-				if (!p.next_column(&ptr))
-					return false;
-				if (cnt >= col_cnt)
-					return false;
-				l->column[cnt++] = ptr;
-			}
-		}
+		return true;
 	}
 }
 

@@ -27,11 +27,6 @@ namespace cfg
 	class csv
 	{
 	public:
-		struct line
-		{
-			struct line * next;
-			char * column[1];
-		};
 		csv();
 		~csv();
 		bool parse(char* data);
@@ -43,7 +38,7 @@ namespace cfg
 		int col_cnt;
 		int line_cnt;
 		int line_cap;
-		struct line ** list;
+		char*** data;
 	};
 
 	class csvfile : public csv
