@@ -14,7 +14,7 @@ namespace cfg
 		bool next_line()
 		{
 			need_nextline = 0;
-			return parse_ptr != NULL;
+			return parse_ptr != NULL&&(*parse_ptr)!='\0';
 		}
 		const char * error() const { return errmsg; }
 	private:
@@ -38,13 +38,23 @@ namespace cfg
 		int col_cnt;
 		int line_cnt;
 		int line_cap;
-		char*** data;
+		char** data;
 	};
 
 	class csvfile : public csv
 	{
 	public:
-		bool load(const char*);
-		bool save(const char*);
+		csvfile()
+		{
+			buf = 0;
+		}
+		~csvfile()
+		{
+			free(buf);
+		}
+		int load(const char*);
+		int save(const char*);
+	private:
+		char* buf;
 	};
 }

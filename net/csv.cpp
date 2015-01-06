@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +44,11 @@ namespace cfg
 					{
 						SET_CHAR(ptr, bytes, '\0');
 						parse_ptr = ptr + 2;
-						need_nextline = 1;
+						if (*(ptr + 1) == '\r'&&*(ptr + 2) == '\n')
+						{
+							need_nextline = 1;
+							parse_ptr++;
+						}
 						return true;
 					}
 				}
@@ -103,15 +108,15 @@ namespace cfg
 		line_cnt = 0;
 		col_cnt = 0;
 		line_cap = 0;
-		list = NULL;
+		data = NULL;
 	}
 	csv::~csv()
 	{
 		for (int i = 0; i < line_cnt; i++)
 		{
-			free(list[i]);
+			free(data[i]);
 		}
-		free(list);
+		free(data);
 	}
 
 	struct column_node
@@ -147,6 +152,8 @@ namespace cfg
 			{
 				char *ptr = NULL;
 				if (!p.next_column(&ptr))
+					return false;
+				if (!ptr)
 					break;
 				struct column_node * n = (struct column_node*)malloc(sizeof(*n));
 				n->next = NULL;
@@ -159,14 +166,16 @@ namespace cfg
 			++line_num;
 		}
 		line_cnt = line_num;
-		data = (char***)malloc(sizeof(char*)*line_cnt*col_cnt);
-		for (struct line_node* cur=line_head.next,int line=0;cur;++line)
+		data = (char**)malloc(sizeof(char*)*line_cnt*col_cnt);
+		int line = 0;
+		for (struct line_node* cur=line_head.next;cur;++line)
 		{
 			struct line_node* next=cur->next;
-			for (struct column_node* c = cur->head.next, int row = 0; c;++row)
+			int row = 0;
+			for (struct column_node* c = cur->head.next; c;++row)
 			{
 				struct column_node* next = c->next;
-				data[line][row] = c->data;
+				data[line*col_cnt + row] = c->data;
 				free(c);
 				c = next;
 			}
@@ -174,6 +183,35 @@ namespace cfg
 			cur = next;
 		}
 		return true;
+	}
+
+	int csvfile::load(const char* path)
+	{
+		FILE* f = fopen(path, "rb");
+		if (!f)
+			return errno;
+		fseek(f, 0, SEEK_END);
+		size_t len = ftell(f);
+		char* b = (char*)malloc(len + 1);
+		b[len] = '\0';
+		fseek(f, 0, SEEK_SET);
+		size_t r = fread(b, 1, len, f);
+		if (r != len)
+		{
+			int err = errno;
+			fclose(f);
+			free(b);
+			return err;
+		}
+		fclose(f);
+		int err = parse(b);
+		if (err)
+		{
+			free(b);
+			return err;
+		}
+		buf = b;
+		return 0;
 	}
 }
 
