@@ -5,23 +5,23 @@ namespace cfg
 	class csv_parse
 	{
 	public:
-		csv_parse(char* msg)
+		csv_parse(char* msg, char* err, size_t len)
 		{
-			data = msg;
 			parse_ptr = msg;
+			errmsg = err;
+			errmsg_len = len;
 		}
 		bool next_column(char** out);
 		bool next_line()
 		{
 			need_nextline = 0;
-			return parse_ptr != NULL&&(*parse_ptr)!='\0';
+			return parse_ptr != NULL && (*parse_ptr) != '\0';
 		}
-		const char * error() const { return errmsg; }
 	private:
-		char* data;
 		char* parse_ptr;
 		int need_nextline;
-		char errmsg[32];
+		char* errmsg;
+		size_t errmsg_len;
 	};
 
 	class csv
@@ -30,7 +30,7 @@ namespace cfg
 		csv();
 		~csv();
 		bool parse(char* data);
-
+		const char* error() const { return errmsg; }
 	protected:
 		bool parse_head();
 		void resize_line();
@@ -39,6 +39,8 @@ namespace cfg
 		int line_cnt;
 		int line_cap;
 		char** data;
+	protected:
+		char errmsg[32];
 	};
 
 	class csvfile : public csv
@@ -52,8 +54,8 @@ namespace cfg
 		{
 			free(buf);
 		}
-		int load(const char*);
-		int save(const char*);
+		bool load(const char*);
+		bool save(const char*);
 	private:
 		char* buf;
 	};
