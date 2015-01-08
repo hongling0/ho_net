@@ -22,10 +22,8 @@ namespace frame
 	timer::timer()
 	{
 		memset(this, 0, sizeof(*this));
-		for (int i = 0; i < 3; i++)
-		{
-			for (int j = 0; j <TIME_LEVEL; j++)
-			{
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j <TIME_LEVEL; j++) {
 				timer_node* r = &n[i][j].head;
 				r->list_next = r;
 				r->list_prev = r;
@@ -33,16 +31,14 @@ namespace frame
 				r->hash_prev = NULL;
 			}
 		}
-		for (int i = 0; i < TIME_NEAR; i++)
-		{
+		for (int i = 0; i < TIME_NEAR; i++) {
 			timer_node* r = &t[i].head;
 			r->list_next = r;
 			r->list_prev = r;
 			r->hash_next = NULL;
 			r->hash_prev = NULL;
 		}
-		for (int i = 0; i < TIMER_HASH_SIZE; i++)
-		{
+		for (int i = 0; i < TIMER_HASH_SIZE; i++) {
 			timer_node* r = &h[i];
 			r->hash_next = r;
 			r->hash_prev = r;
@@ -56,18 +52,15 @@ namespace frame
 	{
 		uint32_t expire = r->expire;
 		uint32_t current_time = time;
-		if (expire < current_time)
-		{
+		if (expire < current_time) {
 			assert(false);
 		}
 		if ((expire | TIME_NEAR_MASK) == (current_time | TIME_NEAR_MASK))
-			list_add(&t[expire &TIME_NEAR_MASK],r);
-		else
-		{
+			list_add(&t[expire &TIME_NEAR_MASK], r);
+		else {
 			int i = 0;
 			uint32_t mask = TIME_NEAR << 6;
-			for (; i < 3; i++)
-			{
+			for (; i < 3; i++) {
 				if ((expire | (mask - 1)) == (current_time | (mask - 1)))
 					break;
 				mask <<= 6;
@@ -75,9 +68,9 @@ namespace frame
 			list_add(&n[i][(expire >> (8 + i * 6))&TIME_LEVEL_MASK], r);
 		}
 	}
-	uint32_t timer::add(timer_call call, timer_context ctx, uint32_t wait)
+	uint32_t timer::add(timer_call call, void* ctx, uint32_t wait)
 	{
-		timer_node * r =alloc();
+		timer_node * r = alloc();
 		r->call = call;
 		r->u = ctx;
 		r->id = ++index;
@@ -91,20 +84,18 @@ namespace frame
 
 		addto_list(r);
 		addto_hash(r);
-		
+
 		return r->id;
 	}
 
 	timer::timer_node* timer::alloc()
 	{
 		timer_node* r = freenode;
-		if (r)
-		{
+		if (r) {
 			freenode = freenode->list_next;
 			--free_cnt;
-		}
-		else
-			r = (timer_node*) malloc (sizeof(timer_node));
+		} else
+			r = (timer_node*)malloc(sizeof(timer_node));
 		++use_cnt;
 		return r;
 	}
@@ -114,8 +105,7 @@ namespace frame
 		use = use ? use : 1;
 		if (free_cnt >= use)
 			free(n);
-		else
-		{
+		else {
 			n->list_next = freenode;
 			freenode = n;
 			++free_cnt;
@@ -126,10 +116,8 @@ namespace frame
 	{
 		int hash = HASH(id);
 		timer_node *r, *head;
-		for (head = &h[hash], r = head->hash_next; r != head; r = r->hash_next)
-		{
-			if (r->id == id)
-			{
+		for (head = &h[hash], r = head->hash_next; r != head; r = r->hash_next) {
+			if (r->id == id) {
 				delfrom_list(r);
 				delfrom_hash(r);
 				dealloc(r);
@@ -138,19 +126,18 @@ namespace frame
 		}
 	}
 
-	void timer::execute()
+	void timer::execute(iocp& io)
 	{
 		lock();
 		int idx = time & TIME_NEAR_MASK;
 		timer_node* r = list_clear(&t[idx]);
 		unlock();
-		while (r)
-		{
+		while (r) {
 			timer_node* n = r->list_next;
 			lock();
 			delfrom_hash(r);
 			unlock();
-			r->call(r->u);
+			r->call(io,r->u);
 			dealloc(r);
 			r = n;
 		}
@@ -159,8 +146,7 @@ namespace frame
 	void timer::list_move(int level, int idx)
 	{
 		timer_node* r = list_clear(&n[level][idx]);
-		while (r)
-		{
+		while (r) {
 			timer_node* n = r->list_next;
 			r->list_prev = NULL;
 			r->list_next = NULL;
@@ -185,17 +171,13 @@ namespace frame
 		int mask = TIME_NEAR;
 		lock();
 		uint32_t ct = ++time;
-		if (ct == 0)
-		{
+		if (ct == 0) {
 			list_move(3, 0);
-		}
-		else
-		{
+		} else {
 			uint32_t t = ct >> 8;
 			int i = 0;
 
-			while ((ct & (mask - 1)) == 0)
-			{
+			while ((ct & (mask - 1)) == 0) {
 				int idx = t & TIME_LEVEL_MASK;
 				if (idx != 0) {
 					list_move(i, idx);
@@ -209,43 +191,37 @@ namespace frame
 		unlock();
 	}
 
-	void timer::tick()
+	void timer::tick(iocp& io)
 	{
-		execute();
+		execute(io);
 		shift();
-		execute();
+		execute(io);
 	}
 
-	void timer::update()
+	void timer::update(iocp& io)
 	{
 		uint32_t diff = 0;
 		uint64_t now_tick = gettime();
 
 		lock();
 
-		if (now_tick < timer_tick)
-		{
+		if (now_tick < timer_tick) {
 			diff = (uint32_t)(_UI64_MAX - timer_tick + now_tick);
 			fprintf(stderr, "timer %p rewind from %lld to %lld\n", this, now_tick, timer_tick);
-		}
-		else if (now_tick != timer_tick)
-		{
+		} else if (now_tick != timer_tick) {
 			diff = (uint32_t)(now_tick - timer_tick);
 		}
-		if (diff > 0)
-		{
+		if (diff > 0) {
 			timer_tick = now_tick;
 			unlock();
-			for (uint32_t i = 0; i<diff; i++)
-			{
-				tick();
+			for (uint32_t i = 0; i<diff; i++) {
+				tick(io);
 			}
-		}
-		else
+		} else
 			unlock();
 	}
 
-	void timer::list_add(timer_list* list,timer_node* r)
+	void timer::list_add(timer_list* list, timer_node* r)
 	{
 		ASSERT(!r->list_prev, "may be add repeated");
 		ASSERT(!r->list_next, "may be add repeated");

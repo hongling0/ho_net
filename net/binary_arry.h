@@ -1,10 +1,9 @@
 #pragma once
 #include <memory>
 
-
 namespace frame
 {
-	template<typename V,V null=NULL>
+	template<typename V, V null = NULL>
 	class binary_arry
 	{
 		struct item
@@ -15,7 +14,7 @@ namespace frame
 	public:
 		static V not_found;
 	public:
-		binary_arry(int sz=0)
+		binary_arry(int sz = 0)
 		{
 			slot = NULL;
 			slot_sz = 0;
@@ -33,9 +32,8 @@ namespace frame
 				grown();
 			int p = 0;
 			for (p = 0; p < slot_sz&&slot[p].key < key; p++);
-			for (int i = slot_sz; i > p; i--)
-			{
-				slot[i] =slot[i-1];
+			for (int i = slot_sz; i > p; i--) {
+				slot[i] = slot[i - 1];
 			}
 			slot[p].key = key;
 			slot[p].val = val;
@@ -53,10 +51,10 @@ namespace frame
 			int mid = low + (high - low) / 2;
 			if (low>high)
 				return not_found;
-			else{
+			else {
 				if (arr[mid].key == key)
 					return arr[mid].val;
-				else if(arr[mid].key>key)
+				else if (arr[mid].key>key)
 					return binary_search(arr, low, mid - 1, key);
 				else
 					return binary_search(arr, mid + 1, high, key);
@@ -67,8 +65,7 @@ namespace frame
 			int new_max = slot_max ? 2 * slot_max : slot_def;
 			item* newslot = (item*)malloc(sizeof(item)*new_max);
 			memset(newslot, 0, sizeof(item)*new_max);
-			for (int i = 0; i < slot_sz; i++)
-			{
+			for (int i = 0; i < slot_sz; i++) {
 				newslot[i].key = slot[i].key;
 				newslot[i].val = slot[i].val;
 			}
@@ -83,6 +80,6 @@ namespace frame
 		int slot_max;
 	};
 
-	template<typename V,V null>
-	V binary_arry<V, null>::not_found=null;
+	template<typename V, V null>
+	V binary_arry<V, null>::not_found = null;
 }

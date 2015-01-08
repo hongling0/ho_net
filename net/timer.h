@@ -8,19 +8,14 @@
 
 namespace frame
 {
-	union timer_context
-	{
-		void * p;
-		int i;
-		double d;
-	};
-	typedef void(*timer_call)(timer_context u);
+	class iocp;
+	typedef void(*timer_call)(iocp& io, void* u);
 	class timer : public sys::spinlock
 	{
 	private:
 		struct timer_node
 		{
-			timer_context u;
+			void* u;
 			timer_call call;
 			timer_node * list_prev;
 			timer_node * list_next;
@@ -35,13 +30,13 @@ namespace frame
 		};
 	public:
 		timer();
-		uint32_t add(timer_call call, timer_context ctx, uint32_t wait);
+		uint32_t add(timer_call call, void* ctx, uint32_t wait);
 		void del(uint32_t id);
-		void update();
+		void update(iocp&);
 	protected:
-		void execute();
+		void execute(iocp&);
 		void shift();
-		void tick();
+		void tick(iocp&);
 		
 		void addto_list(timer_node* r);
 		void delfrom_list(timer_node* r);

@@ -17,8 +17,7 @@ namespace frame
 	{
 		sys::lock_guard<sys::spinlock> guard(lock);
 		ring_buffer* b = head;
-		while (b)
-		{
+		while (b) {
 			head = b->next;
 			delete b;
 			b = head;
@@ -39,8 +38,7 @@ namespace frame
 		sys::lock_guard<sys::spinlock> guard(lock);
 		if (head == NULL)
 			tail = head = b;
-		else
-		{
+		else {
 			tail->next = b;
 			tail = b;
 		}

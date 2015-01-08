@@ -6,26 +6,23 @@ using namespace frame;
 
 struct context
 {
-	iocp* io;
 	static uint32_t counter;
 };
 uint32_t context::counter = 0;
 
-void test_callback(timer_context u)
+void test_callback(iocp& io,void* u)
 {
-	context* ctx = (context*)u.p;
-	//if (ctx->counter%100000==0)
-		fprintf(stdout, "timeout:%p,%d\n", u.p, ctx->counter);
+	context* ctx = (context*)u;
+	if (ctx->counter%100000==0)
+		fprintf(stdout, "timeout:%p,%d\n", u, ctx->counter);
 	ctx->counter++;
-	ctx->io->start_timer(test_callback, u, 1000);
+	io.start_timer(test_callback, u, 1000);
 }
 
 void start_timer(iocp& io)
 {
 	context* ctx = new context();
-	ctx->io = &io;
-	timer_context u; u.p = ctx;
-	ctx->io->start_timer(test_callback, u, 1000);
+	io.start_timer(test_callback, ctx, 1000);
 }
 
 int main()
@@ -35,7 +32,7 @@ int main()
 	frame::iocp io;
 	io.start_thread(8);
 
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 100000; ++i)
 	{
 		start_timer(io);
 	}
@@ -44,7 +41,6 @@ int main()
 	std::cin >> buf;
 
 	io.stop_thread();
-	frame::stop_socketserver();
 
 	_CrtDumpMemoryLeaks();
 	return 1;

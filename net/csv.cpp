@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "csv.h"
+#include "stringutil.h"
 
+using namespace frame;
 
 #define SET_CHAR(ptr,n,c) do{ *(ptr-n)=c; } while(0)
 #define MV_CHAR(ptr,n) do{ if(n>0)*(ptr-n)=*ptr; } while(0)
@@ -149,6 +151,7 @@ namespace cfg
 			for (;;) {
 				char *ptr = NULL;
 				if (!p.next_column(&ptr))
+					// todo memory leak
 					return false;
 				if (!ptr)
 					break;
@@ -170,10 +173,10 @@ namespace cfg
 			struct line_node* next = cur->next;
 			int row = 0;
 			for (struct column_node* c = cur->head.next; c; ++row) {
-				struct column_node* next = c->next;
+				struct column_node* n = c->next;
 				data[line*col_cnt + row] = c->data;
 				free(c);
-				c = next;
+				c = n;
 			}
 			for (; row < col_cnt; ++row)
 				data[line*col_cnt + row] = "";
@@ -181,6 +184,25 @@ namespace cfg
 			cur = next;
 		}
 		return true;
+	}
+
+	const char* csv::value(int line, int row, const char* def)
+	{
+		if (line >= line_cnt || row >= col_cnt) return def;
+		return data[line*col_cnt + row];
+	}
+
+	int csv::value(int line, int row, int def)
+	{
+		const char* val = value(line, row, (const char*)NULL);
+		if (!val) return def;
+		return tointeger(val, def);
+	}
+	double csv::value(int line, int row, double def)
+	{
+		const char* val = value(line, row, (const char*)NULL);
+		if (!val) return def;
+		return todouble(val, def);
 	}
 
 	bool csvfile::load(const char* path)

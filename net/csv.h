@@ -31,6 +31,11 @@ namespace cfg
 		~csv();
 		bool parse(char* data);
 		const char* error() const { return errmsg; }
+
+		const char* value(int line, int row, const char* def);
+		int value(int line, int row, int def);
+		double value(int line, int row, double def);
+
 	protected:
 		bool parse_head();
 		void resize_line();
