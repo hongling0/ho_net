@@ -44,11 +44,9 @@ namespace frame
 	void logic::on_logic(logic_msg* msg)
 	{
 		msg_handle h = array.find(msg->msg_id);
-		if (h)
-		{
+		if (h) {
 			(h)(this, msg);
-		}
-		else
+		} else
 			assert(false);
 	}
 
@@ -58,29 +56,16 @@ namespace frame
 		event_logic* lgc = new event_logic;
 		lgc->msg = msg;
 		logic* recv = grub_logic(destination);
-		if (!recv)
-		{
+		if (!recv) {
 			delete lgc;
 			assert(false);
 			return FRAME_POLLER_NOT_FOUND;
-		}
-		else
-		{
-			int err=io.post(recv, lgc, 0, 0);
+		} else {
+			int err = io.post(recv, lgc, 0, 0);
 			if (err != NO_ERROR&&err != WSA_IO_PENDING)
 				delete lgc;
 			return err;
 		}
-	}
-
-	uint32_t logic::start_timer(timer_call call, timer_context u,uint32_t wait)
-	{
-		return io.start_timer(call, u, wait);
-	}
-
-	void logic::stop_timer(uint32_t idx)
-	{
-		io.stop_timer(idx);
 	}
 
 }

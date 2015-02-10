@@ -4,6 +4,9 @@
 #include <string.h>
 #include <ctype.h>
 #include "ini.h"
+#include "stringutil.h"
+
+using namespace frame;
 
 namespace cfg
 {
@@ -16,21 +19,19 @@ namespace cfg
 	{
 		clear();
 	}
-	
+
 	bool ini::parse_section(char* str)
 	{
 		char* nm = str + 1;
 		char* end = strchr(nm, ']');
-		if (!end)
-		{
-			sprintf_s(errmsg, sizeof(errmsg), "not found section end flag ]");
+		if (!end) {
+			_snprintf(errmsg, sizeof(errmsg), "not found section end flag ]");
 			return false;
 		}
 		*end = '\0';
 		nm = trim(nm);
-		if (*nm == '\0')
-		{
-			sprintf_s(errmsg, sizeof(errmsg), "empty section name");
+		if (*nm == '\0') {
+			_snprintf(errmsg, sizeof(errmsg), "empty section name");
 			return false;
 		}
 		section* sec = (section*)malloc(sizeof(*sec));
@@ -44,16 +45,14 @@ namespace cfg
 	{
 		char* key = str;
 		char* val = strchr(key, '=');
-		if (!val)
-		{
-			sprintf_s(errmsg, sizeof(errmsg), "not found key value flag =");
+		if (!val) {
+			_snprintf(errmsg, sizeof(errmsg), "not found key value flag =");
 			return false;
 		}
 		*val = '\0';
 		key = trim(key);
-		if (*key == '\0')
-		{
-			sprintf_s(errmsg, sizeof(errmsg), "empty keyval name");
+		if (*key == '\0') {
+			_snprintf(errmsg, sizeof(errmsg), "empty keyval name");
 			return false;
 		}
 		val = trim(val + 1);
@@ -73,11 +72,9 @@ namespace cfg
 		sec->next = base;
 		base = sec;
 		char* line = str;
-		while (line)
-		{
+		while (line) {
 			char* nextline = strchr(line, '\n');
-			if (nextline)
-			{
+			if (nextline) {
 				nextline[0] = '\0';
 				nextline++;
 			}
@@ -85,8 +82,7 @@ namespace cfg
 			if (comment)
 				comment[0] = '\0';
 			line = trim(line);
-			switch (line[0])
-			{
+			switch (line[0]) {
 			case '\0':
 				break;
 			case '[':
@@ -111,8 +107,7 @@ namespace cfg
 	char* ini::ltrim(char* str)
 	{
 		int i = 0;
-		for (; str[i] != '\0'; i++)
-		{
+		for (; str[i] != '\0'; i++) {
 			if (!isspace(str[i]))
 				break;
 		}
@@ -121,15 +116,11 @@ namespace cfg
 	void ini::rtrim(char* str)
 	{
 		int e = -1;
-		for (int i = 0; str[i] != '\0'; i++)
-		{
-			if (isspace(str[i]))
-			{
+		for (int i = 0; str[i] != '\0'; i++) {
+			if (isspace(str[i])) {
 				if (e < 0)
 					e = i;
-			}
-			else
-			{
+			} else {
 				if (e >= 0)
 					e = -1;
 			}
@@ -139,12 +130,10 @@ namespace cfg
 	}
 	void ini::clear()
 	{
-		for (section* sec = base; sec;)
-		{
+		for (section* sec = base; sec;) {
 			section* next = sec;
 			sec = sec->next;
-			for (keyval* kv = next->kv; kv;)
-			{
+			for (keyval* kv = next->kv; kv;) {
 				keyval* n = kv;
 				kv = kv->next;
 				free(n);
@@ -160,43 +149,26 @@ namespace cfg
 	{
 		const char* val = value(sec, key, (char*)NULL);
 		if (!val) return def;
-		char* endptr = NULL;
-		double n = strtod(val, &endptr);
-		if (*endptr != '\0')
-		{
-			fprintf(stderr, "can't convert to number %s\n", val);
-			return def;
-		}
-		return n;
+		return todouble(val, def);
 	}
 	int ini::value(const char* sec, const char* key, int def)
 	{
 		const char* val = value(sec, key, (char*)NULL);
 		if (!val) return def;
-		char* endptr = NULL;
-		long n = strtol(val, &endptr, 0);
-		if (*endptr != '\0')
-		{
-			fprintf(stderr, "can't convert to number %s\n", val);
-			return def;
-		}
-		return n;
+		return tointeger(val, def);
 	}
 	const char* ini::value(const char* sec, const char* key, char* def)
 	{
 		section * node = NULL;
 		if (cache&&strcmp(sec, cache->name) == 0)
 			node = cache;
-		else
-		{
-			for (section * n = base; n; n = n->next)
-			{
+		else {
+			for (section * n = base; n; n = n->next) {
 				if (strcmp(sec, n->name) == 0)
 					node = cache = n;
 			}
 		}
-		for (keyval * n = node?node->kv:NULL; n; n = n->next)
-		{
+		for (keyval * n = node ? node->kv : NULL; n; n = n->next) {
 			if (strcmp(key, n->key) == 0)
 				return n->val ? n->val : def;
 		}
@@ -212,34 +184,20 @@ namespace cfg
 	{
 		const char* val = value(key, (char*)NULL);
 		if (!val) return def;
-		char* endptr = NULL;
-		double n = strtod(val, &endptr);
-		if (*endptr != '\0')
-		{
-			fprintf(stderr, "can't convert to number %s\n", val);
-			return def;
-		}
-		return n;
+		return todouble(val, def);
 	}
+
 	int ini::value(const char* key, int def)
 	{
 		const char* val = value(key, (char*)NULL);
 		if (!val) return def;
-		char* endptr = NULL;
-		long n = strtol(val, &endptr,0.0);
-		if (*endptr != '\0')
-		{
-			fprintf(stderr, "can't convert to number %s\n", val);
-			return def;
-		}
-		return n;
+		return tointeger(val, def);
 	}
 	const char* ini::value(const char* key, char* def)
 	{
-		for (keyval * n = next?next->kv:NULL; n; n = n->next)
-		{
+		for (keyval * n = next ? next->kv : NULL; n; n = n->next) {
 			if (strcmp(key, n->key) == 0)
-				return n->val?n->val:def;
+				return n->val ? n->val : def;
 		}
 		return def;
 	}
@@ -256,9 +214,8 @@ namespace cfg
 	bool inifile::load(const char* file)
 	{
 		FILE* f = fopen(file, "rb");
-		if (!f)
-		{
-			sprintf_s(errmsg, sizeof(errmsg), strerror(errno));
+		if (!f) {
+			_snprintf(errmsg, sizeof(errmsg), strerror(errno));
 			return false;
 		}
 		fseek(f, 0, SEEK_END);
@@ -266,16 +223,14 @@ namespace cfg
 		char*b = (char*)malloc(len + 1);
 		b[len] = '\0';
 		size_t r = fread(b, 1, len, f);
-		if (r != len)
-		{
-			sprintf_s(errmsg, sizeof(errmsg), strerror(errno));
+		if (r != len) {
+			_snprintf(errmsg, sizeof(errmsg), strerror(errno));
 			fclose(f);
 			free(b);
 			return false;
 		}
 		fclose(f);
-		if (!parse(b))
-		{
+		if (!parse(b)) {
 			clear();
 			free(b);
 			return false;

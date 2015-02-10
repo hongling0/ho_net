@@ -18,7 +18,7 @@ namespace frame
 		void wait();
 		int post(void* context, event_head* ev, size_t bytes, errno_type e);
 		bool append_socket(socket_type s, void* context);
-		uint32_t start_timer(timer_call call, timer_context u, uint32_t wait = 0);
+		uint32_t start_timer(timer_call call, void* u, uint32_t wait = 0);
 		void stop_timer(uint32_t idx);
 	protected:
 		handle_type fd;

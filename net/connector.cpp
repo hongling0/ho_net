@@ -8,7 +8,7 @@ namespace frame
 	{
 		logic_connect* m = (logic_connect*)msg;
 		fprintf(stdout, "|logic_connect|%d| [%s]\n", m->id, errno_str(m->err));
-		((connector*)self)->on_connect(m->id,m->err);
+		((connector*)self)->on_connect(m->id, m->err);
 	}
 	static void msg_recv(logic* self, logic_msg* msg)
 	{
@@ -23,7 +23,7 @@ namespace frame
 		start_close(m->id);
 	}
 
-	connector::connector(iocp& e, protocol_call _call /*= default_protocol*/) :logic(e), call(_call),port(0),socket(0)
+	connector::connector(iocp& e, protocol_call _call /*= default_protocol*/) :logic(e), call(_call), port(0), socket(0)
 	{
 		addhandler(logic_msg_id<logic_connect>::id, &msg_connect);
 		addhandler(logic_msg_id<logic_recv>::id, &msg_recv);
@@ -31,7 +31,7 @@ namespace frame
 	}
 	bool connector::start(const char* _ip, int _port)
 	{
-		if (socket) 
+		if (socket)
 			return true;
 		ip = _ip;
 		port = _port;
@@ -53,15 +53,15 @@ namespace frame
 		socket = 0;
 	}
 
-	void connector::on_connect(int id,errno_type err)
+	void connector::on_connect(int id, errno_type err)
 	{
 		ASSERT(id == socket, "|on_connect|%d id error|%d %d\n", logic_id, socket, id);
 		fprintf(stdout, "|on_connect|logic:%d socket:%d| %s\n", logic_id, socket, errno_str(err));
 	}
 	void connector::on_recv(int id, ring_buffer*buffer)
 	{
-		char * buf=NULL;
-		size_t len=0;
+		char * buf = NULL;
+		size_t len = 0;
 		buffer->readbuffer(&buf, &len);
 		std::string msg(buf, len);
 		//fprintf(stdout, "%d on_recv %s\n", id, msg.c_str());

@@ -3,7 +3,6 @@
 
 using namespace frame;
 
-
 logic_store::logic_store()
 {
 	index = 0;
@@ -18,12 +17,11 @@ logic_store::~logic_store()
 }
 int logic_store::resize()
 {
-	int new_size = slot_size ? slot_size : (1 << 2);
+	int new_size = slot_size ? slot_size : (1 << 7);
 	new_size *= 2;
 	logic** newlist = (logic**)::malloc(sizeof(logic*)*new_size);
 	memset(newlist, 0, sizeof(logic*)*new_size);
-	for (int i = 0; i < slot_size; i++)
-	{
+	for (int i = 0; i < slot_size; i++) {
 		int handle = slot[i]->logic_id;
 		int hash = handle & ((slot_size * 2) - 1);
 		newlist[hash] = slot[i];
@@ -37,14 +35,11 @@ int logic_store::resize()
 int logic_store::reg(logic* lgc)
 {
 	lock.wlock();
-	for (;;)
-	{
-		for (int i = 0; i < slot_size; i++)
-		{
+	for (;;) {
+		for (int i = 0; i < slot_size; i++) {
 			int handle = i + index;
 			int hash = handle & (slot_size - 1);
-			if (slot[hash] == NULL)
-			{
+			if (slot[hash] == NULL) {
 				slot[hash] = lgc;
 				index = handle + 1;
 				lock.wunlock();

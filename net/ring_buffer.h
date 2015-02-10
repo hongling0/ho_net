@@ -23,8 +23,8 @@ namespace frame
 		ring_buffer* next;
 	private:
 		char * buffer;
-		size_t capacity;
-		uint32_t _read;
-		uint32_t _write;
+		size_t size;
+		uint32_t out;
+		uint32_t in;
 	};
 }

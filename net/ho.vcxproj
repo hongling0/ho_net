@@ -29,6 +29,7 @@
     <ClInclude Include="socket.h" />
     <ClInclude Include="socketinterface.h" />
     <ClInclude Include="socketserver.h" />
+    <ClInclude Include="stringutil.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="typedef.h" />
   </ItemGroup>
@@ -37,6 +38,7 @@
     <ClCompile Include="connector.cpp" />
     <ClCompile Include="csv.cpp" />
     <ClCompile Include="errmsg.cpp" />
+    <ClCompile Include="http_request.cpp" />
     <ClCompile Include="listener.cpp" />
     <ClCompile Include="logic.cpp" />
     <ClCompile Include="logic_store.cpp" />
@@ -47,6 +49,7 @@
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="socketinterface.cpp" />
     <ClCompile Include="socketserver.cpp" />
+    <ClCompile Include="stringutil.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

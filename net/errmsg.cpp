@@ -25,11 +25,9 @@ namespace frame
 		atomic_type lock;
 		~errhash()
 		{
-			for (unsigned i = 0; i < ERRNO_HASH_SIZE; ++i)
-			{
+			for (unsigned i = 0; i < ERRNO_HASH_SIZE; ++i) {
 				struct errnode * node = head[i].next;
-				while (node)
-				{
+				while (node) {
 					struct errnode * next = node->next;
 					free(node);
 					node = next;
@@ -57,19 +55,15 @@ namespace frame
 			0,
 			NULL
 			);
-		if (retval == 0)
-		{
+		if (retval == 0) {
 			if (def)
 				msg = def;
-			else
-			{
+			else {
 				char buf[64];
 				sprintf(buf, "Unkown error %d", e);
 				msg = buf;
 			}
-		}
-		else
-		{
+		} else {
 			msg = lpMsgBuf; // todo: widechar to mulitbyte words  
 		}
 		n = (struct errnode*)malloc(sizeof(*n) + strlen(msg) + 1);
@@ -95,11 +89,9 @@ namespace frame
 
 		prev = &hash->head[h];
 		node = prev->next;
-		if (node)
-		{
+		if (node) {
 			for (; node&&node->err < e; prev = node, node = node->next);
-			if (node&&node->err == e)
-			{
+			if (node&&node->err == e) {
 				UNLOCK(&hash->lock);
 				return node->msg;
 			}
@@ -107,11 +99,9 @@ namespace frame
 
 		prev = &hash->head[h];
 		node = prev->next;
-		if (node)
-		{
+		if (node) {
 			for (; node&&node->err < e; prev = node, node = node->next);
-			if (node&&node->err==e)
-			{
+			if (node&&node->err == e) {
 				UNLOCK(&hash->lock);
 				return node->msg;
 			}
@@ -126,7 +116,7 @@ namespace frame
 
 	bool errno_append(errno_type e, char* msg)
 	{
-		return strcmp(errno_str_inner(e, msg),msg)==0;
+		return strcmp(errno_str_inner(e, msg), msg) == 0;
 	}
 
 	char* errno_str(errno_type e)

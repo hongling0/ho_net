@@ -10,8 +10,6 @@
 namespace frame
 {
 
-
-
 	const int MAX_SOCKET = (1 << 16);
 
 	class socket_server : public logic
@@ -60,6 +58,4 @@ namespace frame
 		atomic_type alloc_id;
 		socket* slot[MAX_SOCKET];
 	};
-
-
 }
