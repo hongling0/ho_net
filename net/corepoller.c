@@ -1,3 +1,4 @@
+#define  _CRT_SECURE_NO_WARNINGS
 #include <winsock2.h>
 #include <WS2tcpip.h>
 #include <MSWSock.h>
@@ -5,6 +6,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include "corepoller.h"
 
 struct core_poller
@@ -14,22 +16,9 @@ struct core_poller
 	OVERLAPPED quit;
 	OVERLAPPED wake;
 	volatile int quited;
-	core_handler handler;
 	//long in_timer;
 	//timer tm;
 };
-
-struct context
-{
-	OVERLAPPED op;
-};
-
-static void DEFAULT_HANDLE(struct core_poller* io, void* ctx, core_msg* msg, size_t bytes, int err)
-{
-	assert(io&&msg);
-	fprintf(stdout, "warning DEFAULT_HANDLE io[%p] ctx[%p] msg[%p] bytes[%d] err[%d]\n"
-		, io, ctx, msg, (int)bytes,(int)err);
-}
 
 struct core_poller* corepoller_new(void)
 {
@@ -52,16 +41,7 @@ struct core_poller* corepoller_new(void)
 	ret->fd = h;
 	ret->thr = 0;
 	ret->quited = 1;
-	ret->handler = DEFAULT_HANDLE;
 	return ret;
-}
-
-core_handler corepoller_handler(struct core_poller* io, core_handler h)
-{
-	assert(io&&h);
-	core_handler old = io->handler;
-	io->handler = h;
-	return old == DEFAULT_HANDLE ? NULL : old;
 }
 
 void corepoller_delete(struct core_poller* io)
@@ -78,6 +58,7 @@ static void THREAD_START_ROUTINE(void* param)
 	DWORD completion_key;
 	LPOVERLAPPED op;
 	BOOL ret;
+	struct msghead* msg;
 
 	struct core_poller* io = (struct core_poller*)param;
 	assert(io);
@@ -107,7 +88,8 @@ static void THREAD_START_ROUTINE(void* param)
 			break;
 		}
 		else if (op) {
-			io->handler(io, (void*)completion_key, (core_msg*)op, bytes, last_error);
+			msg = (struct msghead*)op;
+			msg->call(io, (void*)completion_key, msg, bytes, last_error);
 		}
 		else {
 			fprintf(stderr, "GetQueuedCompletionStatus %s\n", strerror(last_error));
@@ -139,7 +121,7 @@ void corepoller_stop_thread(struct core_poller* io)
 	}
 	while (io->quited == 0) Sleep(1);
 }
-int corepoller_post(struct core_poller* io, void* ctx, core_msg* ev, size_t bytes, errno_type e)
+int corepoller_post(struct core_poller* io, void* ctx,struct msghead* ev, size_t bytes, int e)
 {
 	DWORD last_error;
 
@@ -164,5 +146,3 @@ int corepoller_append_socket(struct core_poller* io, SOCKET s, void* context)
 	}
 	return 0;
 }
-
-

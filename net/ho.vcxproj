@@ -15,6 +15,9 @@
     <ClInclude Include="binary_arry.h" />
     <ClInclude Include="buffer.h" />
     <ClInclude Include="connector.h" />
+    <ClInclude Include="corebuffer.h" />
+    <ClInclude Include="corelogic.h" />
+    <ClInclude Include="corepoller.h" />
     <ClInclude Include="csv.h" />
     <ClInclude Include="errmsg.h" />
     <ClInclude Include="event.h" />
@@ -27,6 +30,7 @@
     <ClInclude Include="poller.h" />
     <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="socket.h" />
+    <ClInclude Include="coresocket.h" />
     <ClInclude Include="socketinterface.h" />
     <ClInclude Include="socketserver.h" />
     <ClInclude Include="stringutil.h" />
@@ -36,6 +40,9 @@
   <ItemGroup>
     <ClCompile Include="buffer.cpp" />
     <ClCompile Include="connector.cpp" />
+    <ClCompile Include="corebuffer.c" />
+    <ClCompile Include="corelogic.c" />
+    <ClCompile Include="corepoller.c" />
     <ClCompile Include="csv.cpp" />
     <ClCompile Include="errmsg.cpp" />
     <ClCompile Include="http_request.cpp" />
@@ -47,6 +54,7 @@
     <ClCompile Include="poller.cpp" />
     <ClCompile Include="ring_buffer.cpp" />
     <ClCompile Include="socket.cpp" />
+    <ClCompile Include="coresocket.c" />
     <ClCompile Include="socketinterface.cpp" />
     <ClCompile Include="socketserver.cpp" />
     <ClCompile Include="stringutil.cpp" />
