@@ -510,12 +510,12 @@ int start_connet(int logic, const char * addr, int port, socket_opt* opt, int* i
 }
 
 static int ev_send_start(struct socket* s, struct socket_ctx* ctx);
-int start_send(int fd, char* data, unsigned long sz)
+int start_send(int fd, struct corebuf* buf)
 {
 	int err;
 	struct socket* s = grub_socket(fd);
-	struct buffer_node* node = buffernode_new(sz);
-	buffernode_write(node, data, sz);
+	struct buffer_node* node = buffernode_new(buf->size);
+	buffernode_write(node, buf->data, buf->size);
 	corebuffer_pushback_safe(&s->read_buf, node);
 	err = ev_send_start(s, &s->write_op);
 	socketcheck_delref(s, err == NO_ERROR ? 0 : 1);

@@ -16,8 +16,37 @@ extern "C" {
 	int stop_socketserver();
 	int start_listen(int logic, const char * addr, int port, int backlog, socket_opt* opt, int* id);
 	int start_connet(int logic, const char * addr, int port, socket_opt* opt, int* id);
-	int start_send(int fd, char* data, unsigned long sz);
+
+	typedef struct corebuf
+	{
+		void* data;
+		unsigned long size;
+	} corebuf;
+	int start_send(int fd, struct corebuf* buf);
 	int start_close(int fd);
+
+	enum socketmsg_type
+	{
+		socketmsg_accept,
+		socketmsg_connect,
+		socketmsg_recv,
+		socketmsg_socketerr,
+		socketmsg_max,
+	};
+
+	struct socket_msg
+	{
+		uint8_t type;
+		uint32_t id;
+		int err;
+		union {
+			int listenid;
+			struct buf{
+				unsigned long size;
+				char data[1];
+			};
+		};
+	};
 
 #ifdef _cpluscplus
 }

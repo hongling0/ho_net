@@ -1,7 +1,6 @@
 #ifndef CORE_POLLER_H
 #define CORE_POLLER_H
 
-
 #include "typedef.h"
 
 #ifdef _cpluscplus
@@ -18,7 +17,7 @@ extern "C" {
 
 	struct msghead
 	{
-		coremsg_head;
+		coremsg_head; // lcbj
 	} ;
 
 	struct core_poller* corepoller_new(void);
