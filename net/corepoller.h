@@ -11,8 +11,6 @@ extern "C" {
 		OVERLAPPED op; \
 		core_handler call
 
-	struct core_poller;
-	struct msghead;
 	typedef void(*core_handler)(struct core_poller* io, void* ctx, struct msghead* msg, size_t bytes, int err);
 
 	struct msghead

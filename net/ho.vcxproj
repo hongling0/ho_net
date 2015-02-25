@@ -49,7 +49,6 @@
     <ClCompile Include="coretimer.c" />
     <ClCompile Include="csv.cpp" />
     <ClCompile Include="coreerrmsg.c" />
-    <ClCompile Include="http_request.cpp" />
     <ClCompile Include="corelistener.c" />
     <ClCompile Include="logic.cpp" />
     <ClCompile Include="logic_store.cpp" />

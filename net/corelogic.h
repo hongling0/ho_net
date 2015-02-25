@@ -16,9 +16,6 @@ extern "C"{
 		void(*release)(void* ins);
 	};
 
-	struct core_poller;
-	struct core_logic;
-	struct logic_msg;
 	typedef void(*logic_handler)(struct core_poller* io, void* ub, int sender, int session, void* data, size_t sz);
 	typedef int(*cmd_handler)(struct core_poller* io, void* ub, int cmd, void* param);
 
