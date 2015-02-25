@@ -219,6 +219,7 @@ uint32_t coretimer_add(struct core_timer *t, timer_call call, void* ctx, uint32_
 
 	return r->id;
 }
+
 void coretimer_del(struct core_timer *t, uint32_t id)
 {
 	struct timer_node *r, *head;

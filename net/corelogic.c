@@ -2,12 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "corelock.h"
 #include "corelogic.h"
 
-#define WLOCK(w);
-#define WUNLOCK(w)
-#define RLOCK(w)
-#define RUNLOCK(w)
+#define WLOCK(w) rwlock_wlock((w))
+#define WUNLOCK(w) rwlock_wunlock((w))
+#define RLOCK(w) rwlock_rlock((w))
+#define RUNLOCK(w) rwlock_runlock((w))
 #define DEFAULT_SLOT_SIZE 64
 
 struct corelogic_store
@@ -15,7 +16,7 @@ struct corelogic_store
 	struct core_logic** slot;
 	uint32_t allocid;
 	int slot_size;
-	volatile long lock;
+	struct rwlock lock;
 };
 
 static struct corelogic_store STORE;

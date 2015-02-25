@@ -23,10 +23,10 @@
 			err = func(s, ctx);\
 			if (err != NO_ERROR) {\
 				report_socketerr(s->logic, s->id, err);\
-						}\
+									}\
 			socketcheck_delref(s, err == NO_ERROR ? 1 : 2);\
-						}\
-			}while(0)
+								}\
+				}while(0)
 
 struct socket;
 typedef struct socket_ctx

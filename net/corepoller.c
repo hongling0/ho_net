@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "corepoller.h"
+#include "coreerrmsg.h"
 
 struct core_poller
 {
@@ -30,7 +31,7 @@ struct core_poller* corepoller_new(void)
 	h= CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
 	if (h == NULL) {
 		last_error = GetLastError();
-		fprintf(stderr, "corepoller_new CreateIoCompletionPort failure %s\n", strerror(last_error));
+		fprintf(stderr, "corepoller_new CreateIoCompletionPort failure %s\n", errno_str(last_error));
 		return NULL;
 	}
 	ret = (struct core_poller*)malloc(sizeof(*ret));
@@ -81,10 +82,12 @@ static void THREAD_START_ROUTINE(void* param)
 			}
 		}
 		if (op == &io->quit) {
-			if (--bytes > 0)
+			if (--bytes > 0) {
 				PostQueuedCompletionStatus(io->fd, bytes, (ULONG_PTR)io, &io->quit);
-			else
+			}
+			else {
 				io->quited = 1;
+			}
 			break;
 		}
 		else if (op) {
@@ -92,7 +95,7 @@ static void THREAD_START_ROUTINE(void* param)
 			msg->call(io, (void*)completion_key, msg, bytes, last_error);
 		}
 		else {
-			fprintf(stderr, "GetQueuedCompletionStatus %s\n", strerror(last_error));
+			fprintf(stderr, "GetQueuedCompletionStatus %s\n", errno_str(last_error));
 			assert(FALSE);
 		}
 	}

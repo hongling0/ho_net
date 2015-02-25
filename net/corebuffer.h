@@ -5,10 +5,6 @@
 #ifndef CORE_BUFFER_H
 #define CORE_BUFFER_H
 
-#define CORE_MIN(a,b) ((a)<(b))?(a):(b)
-#define LOCK(l)
-#define UNLOCK(l)
-
 #ifdef _cpluscplus
 extern "C" {
 #endif

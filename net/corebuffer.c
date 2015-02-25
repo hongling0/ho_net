@@ -1,6 +1,8 @@
 #include "corebuffer.h"
 
 #define CORE_MIN(a,b) ((a)<(b))?(a):(b)
+#define LOCK(l)
+#define UNLOCK(l)
 
 
 static unsigned long next_power(unsigned long sz)
