@@ -1,7 +1,8 @@
 #ifndef CORE_POLLER_H
 #define CORE_POLLER_H
 
-#include "typedef.h"
+#include <stdint.h>
+#include <Windows.h>
 
 #ifdef _cpluscplus
 extern "C" {
@@ -24,8 +25,8 @@ extern "C" {
 	void corepoller_stop_thread(struct core_poller* io);
 	int corepoller_post(struct core_poller* io, void* ctx, struct msghead* ev, size_t bytes, int e);
 	int corepoller_append_socket(struct core_poller* io, SOCKET s, void* context);
-	//uint32_t corepoller_start_timer(struct core_poller* io, void *(call)(), void* u, uint32_t wait = 0);
-	//void corepoller_stop_timer(struct core_poller* io, uint32_t idx);
+	uint32_t corepoller_start_timer(struct core_poller* io, void *(call)(struct core_poller*,void*), void* u, uint32_t wait);
+	void corepoller_stop_timer(struct core_poller* io, uint32_t idx);
 
 #ifdef _cpluscplus
 }

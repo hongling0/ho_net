@@ -9,8 +9,8 @@
 #define ERRNO_HASH_SIZE (1<<8)
 #define HASH(e) (e&(HASH.slot_sz-1))
 
-#define LOCK(a)  while (InterlockedCompareExchange(&hash->lock, 1, 0) != 0)
-#define UNLOCK(a) InterlockedExchange(&hash->lock,0)
+#define LOCK(a)  while (InterlockedCompareExchange(a, 1, 0) != 0)
+#define UNLOCK(a) InterlockedExchange(a,0)
 
 struct errnode
 {

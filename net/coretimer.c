@@ -14,6 +14,9 @@
 #define TIME_NEAR_MASK (TIME_NEAR-1)
 #define TIME_LEVEL_MASK (TIME_LEVEL-1)
 
+#define LOCK(a)  while (InterlockedCompareExchange(a, 1, 0) != 0)
+#define UNLOCK(a) InterlockedExchange(a,0)
+
 static uint64_t gettime()
 {
 	FILETIME ft;
@@ -23,7 +26,6 @@ static uint64_t gettime()
 	u_int.LowPart = ft.dwLowDateTime;
 	return u_int.QuadPart / 10 / 1000 / TIME_SLOT_LEN;  // ns to ms
 }
-
 
 struct timer_node
 {
@@ -47,6 +49,7 @@ struct core_timer
 	struct timer_node* freenode;
 	uint32_t free_cnt;
 	uint32_t use_cnt;
+	volatile long lock;
 	struct timer_node h[TIMER_HASH_SIZE];
 };
 
@@ -80,6 +83,7 @@ struct core_timer * coretimer_new(void)
 	ret->timer_tick = gettime();
 	return ret;
 }
+
 void coretimer_delete(struct core_timer *t)
 {
 	int i;
@@ -103,26 +107,36 @@ void coretimer_delete(struct core_timer *t)
 
 static struct timer_node* timernode_alloc(struct core_timer *timer)
 {
-	struct timer_node* node = timer->freenode;
+	struct timer_node* node;
+	LOCK(&timer->lock);
+	node= timer->freenode;
 	if (node) {
 		timer->freenode = node->list_next;
 		--timer->free_cnt;
-	} else {
+	} 
+	++timer->use_cnt;
+	UNLOCK(&timer->lock);
+	if(!node) {
 		node = (struct timer_node*)malloc(sizeof(*node));
 	}
-	++timer->use_cnt;
 	return node;
 }
 static void timernode_dealloc(struct core_timer *timer, struct timer_node* node)
 {
-	uint32_t use = (--timer->use_cnt) >> 3;
+	uint32_t use, free_cnt;
+	LOCK(&timer->lock);
+	use = (--timer->use_cnt) >> 3;
+	free_cnt = timer->free_cnt;
+	UNLOCK(&timer->lock);
 	use = use ? use : 1;
-	if (timer->free_cnt >= use)
+	if (free_cnt >= use)
 		free(node);
 	else {
+		LOCK(&timer->lock);
 		node->list_next = timer->freenode;
 		timer->freenode = node;
 		++timer->free_cnt;
+		UNLOCK(&timer->lock);
 	}
 }
 
@@ -214,41 +228,48 @@ uint32_t coretimer_add(struct core_timer *t, timer_call call, void* ctx, uint32_
 	r->list_next = NULL;
 	r->list_prev = NULL;
 
+	LOCK(&t->lock);
 	addto_list(t, r);
 	addto_hash(t->h, r);
+	UNLOCK(&t->lock);
 
 	return r->id;
 }
 
-void coretimer_del(struct core_timer *t, uint32_t id)
+void coretimer_del(struct core_timer *timer, uint32_t id)
 {
 	struct timer_node *r, *head;
 	int hash = HASH(id);
-	for (head = &t->h[hash], r = head->hash_next; r != head; r = r->hash_next) {
+	LOCK(&timer->lock);
+	for (head = &timer->h[hash], r = head->hash_next; r != head; r = r->hash_next) {
 		if (r->id == id) {
 			delfrom_list(r);
 			delfrom_hash(r);
-			timernode_dealloc(t, r);
-			break;
+			UNLOCK(&timer->lock);
+			timernode_dealloc(timer, r);
+			return;
 		}
 	}
+	UNLOCK(&timer->lock);
 }
 
 static void timer_execute(struct core_timer *timer, struct iocp* io)
 {
-	//LOCK
-	int idx = timer->time & TIME_NEAR_MASK;
-	struct timer_node* r = list_clear(&timer->t[idx]);
-	//UNLOCK
+	int idx;
+	struct timer_node* r,*n;
+	LOCK(&timer->lock);
+	idx = timer->time & TIME_NEAR_MASK;
+	r = list_clear(&timer->t[idx]);
 	while (r) {
-		struct timer_node* n = r->list_next;
-		//LOCK
+		n = r->list_next;
 		delfrom_hash(r);
-		//UNLOCK
+		UNLOCK(&timer->lock);
 		r->call(io, r->u);
 		timernode_dealloc(timer,r);
+		LOCK(&timer->lock);
 		r = n;
 	}
+	UNLOCK(&timer->lock);
 }
 
 static void list_move(struct core_timer* timer, int level, int idx)
@@ -266,7 +287,7 @@ static void list_move(struct core_timer* timer, int level, int idx)
 static void timer_shift(struct core_timer* timer)
 {
 	int mask = TIME_NEAR;
-	//LOCK
+	LOCK(&timer->lock);
 	uint32_t ct = ++timer->time;
 	if (ct == 0) {
 		list_move(timer, 3, 0);
@@ -285,7 +306,7 @@ static void timer_shift(struct core_timer* timer)
 			++i;
 		}
 	}
-	//UNLOCK
+	UNLOCK(&timer->lock);
 }
 
 static void timer_tick(struct core_timer* timer, struct iocp* io)
@@ -300,7 +321,7 @@ void coretimer_update(struct core_timer* timer, struct iocp* io)
 	uint32_t diff, i;
 	uint64_t now_tick = gettime();
 
-	//LOCK(timer)
+	LOCK(&timer->lock);
 
 	if (now_tick <  timer->timer_tick) {
 		diff = (uint32_t)(_UI64_MAX - timer->timer_tick + now_tick);
@@ -310,11 +331,11 @@ void coretimer_update(struct core_timer* timer, struct iocp* io)
 	}
 	if (diff > 0) {
 		timer->timer_tick = now_tick;
-		//LOCK(timer)
+		UNLOCK(&timer->lock);
 		for (i = 0; i<diff; i++) {
 			timer_tick(timer, io);
 		}
 	} else {
-		//LOCK(timer)
+		UNLOCK(&timer->lock);
 	}
 }

@@ -1,7 +1,9 @@
 #include <assert.h>
+#include <stdio.h>
 #include "coreconnector.h"
 #include "coresocket.h"
 #include "coreerrmsg.h"
+#include "coremodule.h"
 
 struct core_connector
 {
@@ -59,6 +61,7 @@ static coreconnector_cmd CMD[] =
 	[connector_stop] = coreconnector_stop,
 	[connector_send] = coreconnector_send,
 };
+
 static int coreconnector_cmd_handler(struct core_poller* io, void* ub, int cmd, void* param)
 {
 	const char* args = (const char*)param;
@@ -124,7 +127,7 @@ static int init(void* ins, struct core_logic* lgc, void* param)
 	return 0;
 }
 
-static struct core_module connect_md =
+struct core_module connector_module =
 {
 	.name = "connector",
 	.init = init,

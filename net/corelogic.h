@@ -8,14 +8,6 @@
 extern "C"{
 #endif
 
-	struct core_module
-	{
-		char name[16];
-		void*(*create)(void);
-		int(*init)(void* ins, struct core_logic* lgc, void* param);
-		void(*release)(void* ins);
-	};
-
 	typedef void(*logic_handler)(struct core_poller* io, void* ub, int sender, int session, void* data, size_t sz);
 	typedef int(*cmd_handler)(struct core_poller* io, void* ub, int cmd, void* param);
 
@@ -24,6 +16,7 @@ extern "C"{
 		volatile unsigned long ref;
 		int logic_id;
 		struct core_module* mod;
+		void* inst;
 		void * ub;
 		logic_handler call;
 		cmd_handler cmd;
@@ -32,7 +25,7 @@ extern "C"{
 
 #define UB2LOGIC(address) ((struct core_logic *)((char*)(address) - (unsigned long)(&((struct core_logic *)0)->ub)))
 
-	struct core_logic* corelogic_new(struct core_poller* io, logic_handler call);
+	struct core_logic* corelogic_new(struct core_poller* io, void* param);
 	struct core_logic* corelogic_grub(int id);
 	void corelogic_release(struct core_logic* lgc);
 	logic_handler corelogic_handler(struct core_logic* lgc, logic_handler call);

@@ -1,9 +1,11 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "corelock.h"
 #include "corelogic.h"
+#include "coremodule.h"
 
 #define WLOCK(w) rwlock_wlock((w))
 #define WUNLOCK(w) rwlock_wunlock((w))
@@ -67,13 +69,27 @@ static void default_logic_handler(struct core_poller* io, struct core_logic* lgc
 	assert(0);
 }
 
-struct core_logic* corelogic_new(struct core_poller* io, logic_handler call)
+struct core_logic* corelogic_new(struct core_poller* io,const char* name, void* param)
 {
-	struct core_logic* ret = (struct core_logic*)malloc(sizeof(*ret));
+	struct core_logic* ret;
+	void* inst;
+	struct core_module* mod = coremodule_query(name);
+	if (!mod)
+		return NULL;
+
+	assert(mod->create);
+	inst = mod->create();
+	if (!inst)
+		return NULL;
+	
+	ret = (struct core_logic*)malloc(sizeof(*ret));
 	ret->ref = 1;
 	ret->io = io;
-	ret->call = call ? call : default_logic_handler;
+	ret->call = NULL;
+	ret->cmd = NULL;
+	ret->inst = inst;
 	corelogic_store_reg(ret);
+	mod->init(inst, ret, param);
 	return ret;
 }
 
@@ -104,11 +120,11 @@ void corelogic_release(struct core_logic* lgc)
 		WLOCK(&store->lock);
 		hash = lgc->logic_id&(store->slot_size - 1);
 		thelgc = store->slot[hash];
-		if (thelgc == lgc) {
-			store->slot[hash] = NULL;
-			free(lgc);
-		}
+		assert(thelgc == lgc);
+		store->slot[hash] = NULL;
 		WUNLOCK(&store->lock);
+		lgc->mod->release(lgc->inst);
+		free(lgc);
 	}
 }
 

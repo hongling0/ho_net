@@ -9,6 +9,7 @@
 #include <string.h>
 #include "corepoller.h"
 #include "coreerrmsg.h"
+#include "coretimer.h"
 
 struct core_poller
 {
@@ -17,8 +18,8 @@ struct core_poller
 	OVERLAPPED quit;
 	OVERLAPPED wake;
 	volatile int quited;
-	//long in_timer;
-	//timer tm;
+	struct core_timer* timer;
+	volatile long in_timer;
 };
 
 struct core_poller* corepoller_new(void)
@@ -42,6 +43,7 @@ struct core_poller* corepoller_new(void)
 	ret->fd = h;
 	ret->thr = 0;
 	ret->quited = 1;
+	ret->timer = coretimer_new();
 	return ret;
 }
 
@@ -49,6 +51,7 @@ void corepoller_delete(struct core_poller* io)
 {
 	assert(io);
 	CloseHandle(io->fd);
+	coretimer_delete(io->timer);
 	free(io);
 }
 
@@ -66,12 +69,12 @@ static void THREAD_START_ROUTINE(void* param)
 
 	for (;;) {
 		
-		/*
-		if (InterlockedCompareExchange(&in_timer, 1, 0) == 0) {
-		tm.update(*this);
-		InterlockedExchange(&in_timer, 0);
+
+		if (InterlockedCompareExchange(&io->in_timer, 1, 0) == 0) {
+			coretimer_update(io->timer, io);
+			InterlockedExchange(&io->in_timer, 0);
 		}
-		*/
+
 		completion_key = 0;
 		SetLastError(0);
 		ret = GetQueuedCompletionStatus(io->fd, &bytes, &completion_key, &op, 500);
@@ -148,4 +151,13 @@ int corepoller_append_socket(struct core_poller* io, SOCKET s, void* context)
 		return -1;
 	}
 	return 0;
+}
+
+uint32_t corepoller_start_timer(struct core_poller* io, void *(call)(struct core_poller*, void*), void* u, uint32_t wait)
+{
+	return coretimer_add(io->timer, call, u, wait);
+}
+void corepoller_stop_timer(struct core_poller* io, uint32_t idx)
+{
+	coretimer_del(io->timer, idx);
 }

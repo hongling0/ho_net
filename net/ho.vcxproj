@@ -15,17 +15,20 @@
     <ClInclude Include="coreconnector.h" />
     <ClInclude Include="corelock.h" />
     <ClInclude Include="corelogic.h" />
+    <ClInclude Include="coremodule.h" />
     <ClInclude Include="corepoller.h" />
     <ClInclude Include="coretimer.h" />
     <ClInclude Include="coreerrmsg.h" />
     <ClInclude Include="corelistener.h" />
     <ClInclude Include="coresocket.h" />
+    <ClInclude Include="modules.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="corebuffer.c" />
     <ClCompile Include="coreconnector.c" />
     <ClCompile Include="corelock.c" />
     <ClCompile Include="corelogic.c" />
+    <ClCompile Include="coremodule.c" />
     <ClCompile Include="corepoller.c" />
     <ClCompile Include="coretimer.c" />
     <ClCompile Include="coreerrmsg.c" />
