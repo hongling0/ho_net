@@ -9,7 +9,7 @@ extern "C"{
 #endif
 
 	typedef void(*logic_handler)(struct core_poller* io, void* ub, int sender, int session, void* data, size_t sz);
-	typedef int(*cmd_handler)(struct core_poller* io, void* ub, int cmd, void* param);
+	typedef int(*cmd_handler)(void* ub, int cmd, void* param);
 
 	struct core_logic
 	{
@@ -25,10 +25,10 @@ extern "C"{
 
 #define UB2LOGIC(address) ((struct core_logic *)((char*)(address) - (unsigned long)(&((struct core_logic *)0)->ub)))
 
-	struct core_logic* corelogic_new(struct core_poller* io, void* param);
+	struct core_logic* corelogic_new(struct core_poller* io, const char* name, void* param);
 	struct core_logic* corelogic_grub(int id);
 	void corelogic_release(struct core_logic* lgc);
-	logic_handler corelogic_handler(struct core_logic* lgc, logic_handler call);
+	int corelogic_cmd(struct core_logic* lgc, int cmd, void* param);
 
 	struct logic_msg
 	{

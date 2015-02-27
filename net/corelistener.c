@@ -3,6 +3,7 @@
 #include "corelistener.h"
 #include "coresocket.h"
 #include "coreerrmsg.h"
+#include "coremodule.h"
 
 struct core_listener
 {
@@ -14,7 +15,7 @@ struct core_listener
 	protocol_on_socketerr on_socketerr;
 };
 
-int corelistener_start(struct core_poller* io, struct core_listener* co, void* param)
+int corelistener_start(struct core_listener* co, void* param)
 {
 	int err;
 	if (co->socket) {
@@ -29,7 +30,7 @@ int corelistener_start(struct core_poller* io, struct core_listener* co, void* p
 	return err;
 }
 
-int corelistener_stop(struct core_poller* io, struct core_listener* co, void* param)
+int corelistener_stop(struct core_listener* co, void* param)
 {
 	if (co->socket) {
 		assert(0);
@@ -41,7 +42,7 @@ int corelistener_stop(struct core_poller* io, struct core_listener* co, void* pa
 	return 0;
 }
 
-int corelistener_send(struct core_poller* io, struct core_listener* co, void* param)
+int corelistener_send(struct core_listener* co, void* param)
 {
 	corebuf* buf = (corebuf*)param;
 	int err = start_send(co->socket, buf);
@@ -51,7 +52,7 @@ int corelistener_send(struct core_poller* io, struct core_listener* co, void* pa
 	return err;
 }
 
-typedef int(*corelistener_cmd)(struct core_poller* io, struct core_listener* co, void* param);
+typedef int(*corelistener_cmd)(struct core_listener* co, void* param);
 
 static corelistener_cmd CMD[] =
 {
@@ -59,13 +60,13 @@ static corelistener_cmd CMD[] =
 	[listener_stop] = corelistener_stop,
 	[listener_send] = corelistener_send,
 };
-static int corelistener_cmd_handler(struct core_poller* io, void* ub, int cmd, void* param)
+static int corelistener_cmd_handler(void* ub, int cmd, void* param)
 {
 	const char* args = (const char*)param;
 	if (cmd <= listener_max) {
 		corelistener_cmd call = CMD[cmd];
 		if (call) {
-			return call(io, (struct core_listener*)ub, param);
+			return call((struct core_listener*)ub, param);
 		}
 	}
 	return -1;
@@ -124,7 +125,7 @@ static int init(void* ins, struct core_logic* lgc, void* param)
 	return 0;
 }
 
-static struct core_module connect_md =
+struct core_module listener_module =
 {
 	.name = "listener",
 	.init = init,

@@ -93,6 +93,11 @@ struct core_logic* corelogic_new(struct core_poller* io,const char* name, void* 
 	return ret;
 }
 
+int corelogic_cmd(struct core_logic* lgc, int cmd, void* param)
+{
+	return lgc->cmd(lgc->ub, cmd, param);
+}
+
 struct core_logic* corelogic_grub(int id)
 {
 	int hash;

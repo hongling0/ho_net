@@ -253,7 +253,7 @@ void coretimer_del(struct core_timer *timer, uint32_t id)
 	UNLOCK(&timer->lock);
 }
 
-static void timer_execute(struct core_timer *timer, struct iocp* io)
+static void timer_execute(struct core_timer *timer, struct core_poller* io)
 {
 	int idx;
 	struct timer_node* r,*n;
@@ -309,14 +309,14 @@ static void timer_shift(struct core_timer* timer)
 	UNLOCK(&timer->lock);
 }
 
-static void timer_tick(struct core_timer* timer, struct iocp* io)
+static void timer_tick(struct core_timer* timer, struct core_poller* io)
 {
 	timer_execute(timer,io);
 	timer_shift(timer);
 	timer_execute(timer, io);
 }
 
-void coretimer_update(struct core_timer* timer, struct iocp* io)
+void coretimer_update(struct core_timer* timer, struct core_poller* io)
 {
 	uint32_t diff, i;
 	uint64_t now_tick = gettime();
