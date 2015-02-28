@@ -60,13 +60,13 @@ static corelistener_cmd CMD[] =
 	[listener_stop] = corelistener_stop,
 	[listener_send] = corelistener_send,
 };
-static int corelistener_cmd_handler(void* ub, int cmd, void* param)
+static int corelistener_cmd_handler(struct core_logic* lgc, int cmd, void* param)
 {
 	const char* args = (const char*)param;
 	if (cmd <= listener_max) {
 		corelistener_cmd call = CMD[cmd];
 		if (call) {
-			return call((struct core_listener*)ub, param);
+			return call((struct core_listener*)lgc->inst, param);
 		}
 	}
 	return -1;
@@ -85,9 +85,9 @@ static void* create(void)
 	return ret;
 }
 
-static void corelistener_logic_handler(struct core_poller* io, void* ub, int sender, int session, void* data, size_t sz)
+static void corelistener_logic_handler(struct core_poller* io, struct core_logic * lgc,int sender, int session, void* data, size_t sz)
 {
-	struct core_listener* co = (struct core_listener*)ub;
+	struct core_listener* co = (struct core_listener*)lgc->inst;
 	struct socket_msg* m = (struct socket_msg*)data;
 	switch (m->type) {
 	case socketmsg_connect:
@@ -115,9 +115,9 @@ static int init(void* ins, struct core_logic* lgc, void* param)
 {
 	const char* args = (const char*)param;
 	struct core_listener* co = (struct core_listener*)ins;
-	int ret = sscanf_s(args, "%s %d", co->ip, &co->port);
+	int ret = sscanf_s(args, "%s %d", co->ip,sizeof(co->ip),&co->port);
 	if (ret != 2) {
-		fprintf(stderr, "bad args for %%s %%d (%s)\n", args);
+		fprintf(stderr, "bad args for %%s %%d (%s) %s\n", args,errno_str(errno));
 		return -1;
 	}
 	lgc->call = corelistener_logic_handler;

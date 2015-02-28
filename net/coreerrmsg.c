@@ -81,6 +81,7 @@ static struct errnode * core_errno_add(struct errhash* hash, uint32_t h, struct 
 	struct errnode * cur, *prev;
 	core_errno_resize(hash);
 	prev = NULL;//;
+	h = HASH(node->err);
 	cur = hash->slot[h];
 	for (; cur&&cur->err < node->err; prev = cur, cur = cur->next);
 	if (cur&&cur->err == node->err) {
@@ -94,7 +95,7 @@ static struct errnode * core_errno_add(struct errhash* hash, uint32_t h, struct 
 	}
 	node->next = cur;
 	hash->used++;
-	return cur;
+	return node;
 }
 
 static void core_errno_resize(struct errhash* hash)
@@ -109,6 +110,7 @@ static void core_errno_resize(struct errhash* hash)
 	hash->slot_sz = thepower(hash->slot_sz);
 	hash->slot = (struct errnode**)malloc(sizeof(*hash->slot)*hash->slot_sz);
 	hash->used = 0;
+	memset(hash->slot, 0, sizeof(*hash->slot)*hash->slot_sz);
 	for (i = 0; i < hash->slot_sz; ++i) {
 		node = hash->slot[i];
 		while (node) {
@@ -125,7 +127,7 @@ static const char * errno_str_inner(int e, const char* def)
 	uint32_t h = HASH(e);
 	struct errnode * node;
 
-	node = hash->slot[h];
+	node = hash->slot?hash->slot[h]:NULL;
 	for (; node&&node->err < e; node = node->next);
 	if (node&&node->err == e) return node->msg;
 

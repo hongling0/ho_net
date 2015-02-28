@@ -11,6 +11,7 @@
 #include "coresocket.h"
 #include "corepoller.h"
 #include "corebuffer.h"
+#include "corelogic.h"
 
 #define MAX_SOCKET (1 << 16)
 #define HASH_ID(id) ((id) & (MAX_SOCKET-1))
@@ -18,15 +19,23 @@
 #define get_io() IO;
 
 #define check_warpcall(func,s,ctx,err) \
-	do{\
-		if (socketcheck_addref(s) == 0) {\
-			err = func(s, ctx);\
-			if (err != NO_ERROR) {\
-				report_socketerr(s->logic, s->id, err);\
-									}\
-			socketcheck_delref(s, err == NO_ERROR ? 1 : 2);\
-								}\
-				}while(0)
+do{\
+if (socketcheck_addref(s) == 0) {\
+err = func(s, ctx);\
+if (err != NO_ERROR) {\
+report_socketerr(s->logic, s->id, err);\
+}\
+socketcheck_delref(s, err == NO_ERROR ? 1 : 2);\
+}\
+}while(0)
+
+#define warp_post(logic,m) \
+do {\
+struct core_logic* lgc = corelogic_grub(logic);\
+m->recver=logic;\
+corepoller_post(lgc->io, NULL, (struct msghead*)m, 0, 0);\
+corelogic_release(lgc);\
+} while (0)
 
 struct socket;
 typedef struct socket_ctx
@@ -176,19 +185,50 @@ static struct socket* grub_socket(int id)
 	return NULL;
 }
 
-static int report_accept(int logic, int newid, int id, int e)
+static int report_accept(int logic, int newid, int id, int err)
 {
-	// todo
+	struct logic_msg* m = logicmsg_new();
+	struct socket_msg* d = (struct socket_msg*)malloc(sizeof(*d));
+	
+	d->id = newid;
+	d->type = socketmsg_accept;
+	d->err = err;
+	d->listenid = id;
+
+	m->data = d;
+	m->sz = sizeof(*d);
+	
+	warp_post(logic, m);
 	return 0;
 }
 int report_socketerr(int logic, int id, int err)
 {
-	// todo
+	struct logic_msg* m = logicmsg_new();
+	struct socket_msg* d = (struct socket_msg*)malloc(sizeof(*d));
+	
+	d->type = socketmsg_socketerr;
+	d->id = id;
+	d->err = err;
+
+	m->data = d;
+	m->sz = sizeof(*d);
+
+	warp_post(logic, m);
 	return 0;
 }
-int report_connect(int logic, int id, int e)
+int report_connect(int logic, int id, int err)
 {
-	// todo
+	struct logic_msg* m = logicmsg_new();
+	struct socket_msg* d = (struct socket_msg*)malloc(sizeof(*d));
+
+	d->type = socketmsg_connect;
+	d->id = id;
+	d->err = err;
+
+	m->data = d;
+	m->sz = sizeof(*d);
+
+	warp_post(logic, m);
 	return 0;
 }
 
@@ -276,9 +316,9 @@ static int reserve_id()
 			id = InterlockedAdd(&ss->alloc_id, 0x7fffffff);
 		}
 		sock = &ss->slot[HASH_ID(id)];
-		if (sock->type == SOCKET_TYPE_RESERVE) {
-			if (InterlockedCompareExchange(&sock->type, SOCKET_TYPE_INVALID, SOCKET_TYPE_RESERVE)
-				== SOCKET_TYPE_RESERVE) {
+		if (sock->type == SOCKET_TYPE_INVALID) {
+			if (InterlockedCompareExchange(&sock->type, SOCKET_TYPE_RESERVE, SOCKET_TYPE_INVALID)
+				== SOCKET_TYPE_INVALID) {
 				sock->id = id;
 				sock->fd = INVALID_SOCKET;
 				sock->pending = 1;
@@ -301,14 +341,14 @@ static struct socket * new_fd(int id, int logic_id, SOCKET fd, int add)
 	io = get_io();
 	ss = get_ss();
 	s = &ss->slot[HASH_ID(id)];
-	assert(s->type == SOCKET_TYPE_INVALID);
+	assert(s->type == SOCKET_TYPE_RESERVE);
 
 	if (add) {
 		WSASetLastError(0);
 		corepoller_append_socket(io, fd, s);
 		err = WSAGetLastError();
 		if (err) {
-			s->type = SOCKET_TYPE_RESERVE;
+			s->type = SOCKET_TYPE_INVALID;
 			return NULL;
 		}
 	}
@@ -352,6 +392,8 @@ static void on_ev_listen(struct core_poller* io, void* data, struct msghead* msg
 		//fprintf(stdout,"remote[%s:%d]->local[%s:%d]\n", inet_ntoa(local_addr->sin_addr),
 		//(int)ntohs(local_addr->sin_port), inet_ntoa(remote_addr->sin_addr), (int)ntohs(remote_addr->sin_port));
 
+		setsockopt(newsock->fd, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&s->fd, sizeof(s->fd));
+
 		newsock->type = SOCKET_TYPE_PACCEPT;
 		report_accept(s->logic, newsock->id, s->id, 0);
 		InterlockedIncrement(&newsock->pending);
@@ -391,6 +433,7 @@ static int ev_listen_start(struct socket* s, struct socket_ctx* ctx)
 	reset_socket_ctx(ctx);
 	ctx->ready = 1;
 	ctx->call = on_ev_listen;
+	ctx->newsock = news;
 
 	WSASetLastError(0);
 	bytes = 0;

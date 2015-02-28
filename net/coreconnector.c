@@ -15,7 +15,7 @@ struct core_connector
 	protocol_on_socketerr on_socketerr;
 };
 
-int coreconnector_start(struct core_poller* io, struct core_connector* co, void* param)
+int coreconnector_start(struct core_connector *co, void *param)
 {
 	int err;
 	if (co->socket) {
@@ -31,7 +31,7 @@ int coreconnector_start(struct core_poller* io, struct core_connector* co, void*
 	return err;
 }
 
-int coreconnector_stop(struct core_poller* io, struct core_connector* co, void* param)
+int coreconnector_stop(struct core_connector *co, void* param)
 {
 	if (co->socket) {
 		assert(0);
@@ -43,7 +43,7 @@ int coreconnector_stop(struct core_poller* io, struct core_connector* co, void* 
 	return 0;
 }
 
-int coreconnector_send(struct core_poller* io, struct core_connector* co, void* param)
+int coreconnector_send(struct core_connector *co, void *param)
 {
 	corebuf* buf = (corebuf*)param;
 	int err = start_send(co->socket, buf);
@@ -53,7 +53,7 @@ int coreconnector_send(struct core_poller* io, struct core_connector* co, void* 
 	return err;
 }
 
-typedef int(*coreconnector_cmd)(struct core_poller* io, struct core_connector* co, void* param);
+typedef int(*coreconnector_cmd)(struct core_connector *co, void* param);
 
 static coreconnector_cmd CMD[] =
 {
@@ -62,13 +62,13 @@ static coreconnector_cmd CMD[] =
 	[connector_send] = coreconnector_send,
 };
 
-static int coreconnector_cmd_handler(struct core_poller* io, void* ub, int cmd, void* param)
+static int coreconnector_cmd_handler(struct core_logic * lgc, int cmd, void* param)
 {
 	const char* args = (const char*)param;
 	if (cmd <= connector_max) {
 		coreconnector_cmd call = CMD[cmd];
 		if (call) {
-			return call(io, (struct core_connector*)ub, param);
+			return call( (struct core_connector*)lgc->inst, param);
 		}
 	}
 	return -1;
@@ -87,22 +87,25 @@ static void* create(void)
 	return ret;
 }
 
-static void coreconnector_logic_handler(struct core_poller* io, void* ub, int sender, int session, void* data, size_t sz)
+static void coreconnector_logic_handler(struct core_poller* io, struct core_logic * lgc, int sender, int session, void* data, size_t sz)
 {
-	struct core_connector* co = (struct core_connector*)ub;
+	struct core_connector* co = (struct core_connector*)lgc->inst;
 	struct socket_msg* m = (struct socket_msg*)data;
 	switch (m->type) {
 	case socketmsg_connect:
 		{
-			co->on_connect(m->id, m->err);
+			if (co->on_connect)
+				co->on_connect(m->id, m->err);
 		}
 	case socketmsg_socketerr:
 		{
-			co->on_socketerr(m->id, m->err);
+			if (co->on_socketerr)
+				co->on_socketerr(m->id, m->err);
 		}
 	case socketmsg_recv:
 		{
-			co->on_recv(m->id, m->data, m->size);
+			if (co->on_recv)
+				co->on_recv(m->id, m->data, m->size);
 		}
 		break;
 	default:
@@ -117,7 +120,7 @@ static int init(void* ins, struct core_logic* lgc, void* param)
 {
 	const char* args = (const char*)param;
 	struct core_connector* co = (struct core_connector*)ins;
-	int ret = sscanf_s(args, "%s %d", co->ip, &co->port);
+	int ret = sscanf_s(args, "%s %d", co->ip, sizeof(co->ip),&co->port);
 	if (ret != 2) {
 		fprintf(stderr, "bad args for %%s %%d (%s)\n", args);
 		return -1;

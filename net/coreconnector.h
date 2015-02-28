@@ -16,11 +16,6 @@ extern "C" {
 	};
 
 
-	int coreconnector_start(struct core_poller* io, struct core_connector* co, void* param);
-	int coreconnector_stop(struct core_poller* io, struct core_connector* co, void* param);
-
-	int coreconnector_send(struct core_poller* io, struct core_connector* co, void/*(corebuf)*/* buf);
-
 	typedef int(*protocol_call)();
 
 	typedef void(*protocol_on_connect)(int id, int err);

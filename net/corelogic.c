@@ -64,11 +64,6 @@ static uint32_t  corelogic_store_reg(struct core_logic* lgc)
 	}
 }
 
-static void default_logic_handler(struct core_poller* io, struct core_logic* lgc, int sender, int session, void* data, size_t sz)
-{
-	assert(0);
-}
-
 struct core_logic* corelogic_new(struct core_poller* io,const char* name, void* param)
 {
 	struct core_logic* ret;
@@ -95,7 +90,7 @@ struct core_logic* corelogic_new(struct core_poller* io,const char* name, void* 
 
 int corelogic_cmd(struct core_logic* lgc, int cmd, void* param)
 {
-	return lgc->cmd(lgc->ub, cmd, param);
+	return lgc->cmd(lgc,cmd, param);
 }
 
 struct core_logic* corelogic_grub(int id)
@@ -133,13 +128,6 @@ void corelogic_release(struct core_logic* lgc)
 	}
 }
 
-logic_handler corelogic_handler(struct core_logic* lgc, logic_handler call)
-{
-	logic_handler oldcall = lgc->call;
-	lgc->call = call ? call : default_logic_handler;
-	return oldcall;
-}
-
 static void default_logicmsg_handler(struct core_poller* io, void* data, struct msghead* msg, size_t bytes, int err)
 {
 	struct logic_msg* ctx = (struct logic_msg*)msg;
@@ -147,7 +135,7 @@ static void default_logicmsg_handler(struct core_poller* io, void* data, struct 
 	if (!lgc) {
 		fprintf(stderr, "logicmsg_handler dead core_logic %d\n", ctx->recver);
 	} else {
-		lgc->call(io, lgc, ctx->sender, ctx->session, ctx->data, ctx->sz);
+		lgc->call(io, lgc,ctx->sender, ctx->session, ctx->data, ctx->sz);
 	}
 	logicmsg_delete(ctx);
 }

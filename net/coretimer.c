@@ -329,6 +329,9 @@ void coretimer_update(struct core_timer* timer, struct core_poller* io)
 	} else if (now_tick != timer->timer_tick) {
 		diff = (uint32_t)(now_tick - timer->timer_tick);
 	}
+	else {
+		diff = 0;
+	}
 	if (diff > 0) {
 		timer->timer_tick = now_tick;
 		UNLOCK(&timer->lock);

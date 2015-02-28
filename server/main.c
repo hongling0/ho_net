@@ -1,4 +1,4 @@
-#include <Windows.h>
+#include <stdio.h>
 #include "corelogic.h"
 #include "coresocket.h"
 #include "corelistener.h"
@@ -13,20 +13,23 @@
 int main()
 {
 	//_CrtSetDbgFlag(_CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF);
+	start_socketserver(1);
 
-	start_socketserver(3);
-
-	
 	struct core_poller * io = corepoller_new();
 	corepoller_start_thread(io, 1);
-	struct core_logic* listener=corelogic_new(io,"listener","0.0.0.0 10000");
-	corelogic_cmd(listener, listener_start, NULL);
+	struct core_logic* connector = corelogic_new(io, "listener", "0.0.0.0 10000");
+	corelogic_cmd(connector, listener_start, NULL);
 
-	for (;;) {
-		Sleep(1);
-	}
+	getc(stdin);
+
+	corelogic_cmd(connector, listener_stop, NULL);
+	corelogic_release(connector);
+
+	corepoller_stop_thread(io);
+	corepoller_delete(io);
 
 	stop_socketserver();
+
 	
 	//_CrtDumpMemoryLeaks();
 
