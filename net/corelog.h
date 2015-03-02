@@ -17,12 +17,11 @@ extern "C" {
 
 	struct logger
 	{
-		void(*log)(struct logger * log,const char* key, int level, const char* file, const char *func, int line, int thr, const char* fmt, ...);
+		void(*log)(struct logger * log, struct core_logger_ctx *ctx,struct tm* tm,const char* head,const char* msg);
 		void(*release)(struct logger * log);
 	};
 
-	void logger_register(struct logger * log,const char* key);
-	void logger_log(struct core_logger_ctx *ctx, const char* fmt,...);
+	void logger_log(const char* key,int level,const char* file,const char* func,int line, int thr,const char* fmt,...);
 
 	enum{
 		corelog_fatal,
@@ -32,13 +31,70 @@ extern "C" {
 		corelog_debug,
 	};
 
-#define LOG_IMPL(key,level,...) do{struct core_logger_ctx ctx={key,level,__FILE__,__FUNCTION__,__LINE__,0}; logger_log(&ctx,__VA_ARGS__)  } while(0)
+	/*
+	{
+		name=console
+		type=console
+		level_max=0
+		level_min=3
+		keylist=*
+	}
+	{
+		name=size_rolle_file
+		type=size_rolle_file
+		level_max=0
+		level_min=3
+		keylist=*
+		args={
+			size=1G
+		}
+	}
+	{
+		name=date_rolle_file
+		type=date_rolle_file
+		level_max=0
+		level_min=3
+		keylist=*
+		args={
+			filename=%Y-%m-%d.log
+		}
+	}
+	{
+		name=mysql
+		type=mysql
+		level_max=0
+		level_min=3
+		keylist=*
+		args={
+			DBNAME=gamelog
+		}
+	}
+	{
+		name=syslog
+		type=syslog
+		level_max=0
+		level_min=3
+		keylist=*
+		args={
+		DBNAME=gamelog
+		}
+	}
+	*/
 
-#define LOG_FATAL(key,...) LOG_IMPL(key,corelog_fatal,__VA_ARGS__)
-#define LOG_ERROR(key,...) LOG_IMPL(key,corelog_error,__VA_ARGS__)
-#define LOG_WARN(key,...) LOG_IMPL(key,corelog_warnning,__VA_ARGS__)
-#define LOG_INFO(key,...) LOG_IMPL(key,corelog_info,__VA_ARGS__)
-#define LOG_DEBUG(key,...) LOG_IMPL(key,corelog_debug,__VA_ARGS__)
+	char* logconf_next_keyval(const char**key, const char**val, char* args);
+	char* logconf_next_section(char** args);
+	typedef struct logger* (*logger_new)(const char* param);
+	int logger_new_register(const char* type, logger_new func);
+
+
+#define LOG_IMPL(key,level,...) do{logger_log(key,level,__FILE__,__FUNCTION__,__LINE__,0,__VA_ARGS__)  } while(0)
+
+#define LOG_FATAL(key,...)	do{logger_log(key,corelog_fatal,__FILE__,__FUNCTION__,__LINE__,0,__VA_ARGS__)  } while(0)
+#define LOG_ERROR(key,...)	do{logger_log(key,corelog_error,__FILE__,__FUNCTION__,__LINE__,0,__VA_ARGS__)  } while(0)
+#define LOG_WARN(key,...)	do{logger_log(key,corelog_warnning,__FILE__,__FUNCTION__,__LINE__,0,__VA_ARGS__)  } while(0)
+#define LOG_INFO(key,...)	do{logger_log(key,corelog_info,__FILE__,__FUNCTION__,__LINE__,0,__VA_ARGS__)  } while(0)
+#define LOG_DEBUG(key,...)	do{logger_log(key,corelog_debug,__FILE__,__FUNCTION__,__LINE__,0,__VA_ARGS__)  } while(0)
+
 
 #ifdef _cpluscplus
 }
