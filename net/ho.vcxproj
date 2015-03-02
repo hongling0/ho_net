@@ -14,6 +14,7 @@
     <ClInclude Include="corebuffer.h" />
     <ClInclude Include="coreconnector.h" />
     <ClInclude Include="corelock.h" />
+    <ClInclude Include="corelog.h" />
     <ClInclude Include="corelogic.h" />
     <ClInclude Include="coremodule.h" />
     <ClInclude Include="corepoller.h" />
@@ -27,6 +28,7 @@
     <ClCompile Include="corebuffer.c" />
     <ClCompile Include="coreconnector.c" />
     <ClCompile Include="corelock.c" />
+    <ClCompile Include="corelog.c" />
     <ClCompile Include="corelogic.c" />
     <ClCompile Include="coremodule.c" />
     <ClCompile Include="corepoller.c" />

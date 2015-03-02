@@ -5,21 +5,6 @@
 extern "C" {
 #endif
 
-	struct logger
-	{
-		void(*log)(const char* key, int level, const char* file, const char *func, int line, int thr, const char* fmt, ...);
-		int level_max;
-		int level_min;
-	};
-
-
-	struct core_log
-	{
-		struct logger ** slot;
-		int slot_sz;
-		int slot_use;
-	};
-
 	struct core_logger_ctx
 	{
 		const char* key;
@@ -30,8 +15,14 @@ extern "C" {
 		int thr;
 	};
 
-	void logger_register(struct logger* log,const char* key);
-	void logger_log(struct core_logger_ctx *ctx, const char* fmt...);
+	struct logger
+	{
+		void(*log)(struct logger * log,const char* key, int level, const char* file, const char *func, int line, int thr, const char* fmt, ...);
+		void(*release)(struct logger * log);
+	};
+
+	void logger_register(struct logger * log,const char* key);
+	void logger_log(struct core_logger_ctx *ctx, const char* fmt,...);
 
 	enum{
 		corelog_fatal,
